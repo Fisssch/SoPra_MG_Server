@@ -35,7 +35,22 @@ public class User implements Serializable {
   private String token;
 
   @Column(nullable = false)
-  private UserStatus status;
+  private UserStatus onlineStatus;
+  @Column
+  private Integer wins;
+
+  @Column
+  private Integer losses;
+
+  @Column
+  private Integer blackCardGuesses;
+
+
+
+  @Column
+  private Boolean ready;
+
+
 
   public Long getId() {
     return id;
@@ -69,11 +84,32 @@ public class User implements Serializable {
     this.token = token;
   }
 
-  public UserStatus getStatus() {
-    return status;
+  public UserStatus getOnlineStatus() {
+    return onlineStatus;
   }
 
-  public void setStatus(UserStatus status) {
-    this.status = status;
+  public void setOnlineStatus (UserStatus status) {
+    this.onlineStatus = status;
   }
+
+    public void setLosses(Integer losses) {
+        this.losses = losses;
+    }
+
+    public Integer getBlackCardGuesses() {
+        return blackCardGuesses;
+    }
+
+    public void setBlackCardGuesses(Integer blackCardGuesses) {
+        this.blackCardGuesses = blackCardGuesses;
+    }
+
+
+    public Boolean getReady() {
+        return ready;
+    }
+
+    public void setReady(Boolean ready) {
+        this.ready = ready;
+    }
 }
