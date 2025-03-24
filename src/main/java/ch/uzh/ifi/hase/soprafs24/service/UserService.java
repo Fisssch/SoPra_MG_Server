@@ -65,7 +65,19 @@ public class UserService {
 
     existingUser.setToken(UUID.randomUUID().toString());
     existingUser.setOnlineStatus(UserStatus.ONLINE);
+    userRepository.save(existingUser);
     return existingUser;
+  }
+
+  //logout 
+  public void logoutUser(String username, String token) {
+    User user = validateToken(token); 
+    if (!user.getUsername().equals(username)){
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authentification");
+    }
+    user.setOnlineStatus(UserStatus.OFFLINE);
+    user.setToken(null);
+    userRepository.save(user);
   }
 
   /**
@@ -92,5 +104,24 @@ public class UserService {
       );
       throw new ResponseStatusException(HttpStatus.CONFLICT,errorMessage);
     } 
+  }
+
+  private User validateToken(String token){
+    if (token == null || token.isEmpty()){
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing authentification");
+    }
+    User user = userRepository.findByToken(token); 
+    if (user == null){
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authentification");
+    }
+    System.out.println("notnull");
+    return user;
+  }
+
+  public String extractToken(String header){
+    if (header == null){
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing header");
+    }
+    return header.substring(7);
   }
 }

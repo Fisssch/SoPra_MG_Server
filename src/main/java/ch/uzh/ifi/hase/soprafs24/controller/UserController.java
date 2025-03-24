@@ -3,6 +3,7 @@ package ch.uzh.ifi.hase.soprafs24.controller;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserLoginDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserLogoutDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * User Controller
@@ -75,5 +77,18 @@ public class UserController {
         .status(HttpStatus.OK) //200
         .header("Authorization", "Bearer " + token)
         .body(userDTO);
+  }
+
+  //logout
+  @PostMapping("/users/logout")
+  @ResponseBody
+  public ResponseEntity<Map<String, String>> logoutUser(
+    @RequestHeader("Authorization") String authHeader,
+    @RequestBody UserLogoutDTO userLogoutDTO) {
+
+    String token = userService.extractToken(authHeader);
+    
+    userService.logoutUser(userLogoutDTO.getUsername(), token); 
+    return ResponseEntity.ok(Map.of("message", "Successfully logged out"));
   }
 }
