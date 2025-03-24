@@ -6,6 +6,7 @@ import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -27,6 +28,7 @@ public class UserController {
     this.userService = userService;
   }
 
+  //GET /users 200 
   @GetMapping("/users")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
@@ -42,16 +44,21 @@ public class UserController {
     return userGetDTOs;
   }
 
+  //register  
   @PostMapping("/users")
-  @ResponseStatus(HttpStatus.CREATED)
   @ResponseBody
-  public UserGetDTO createUser(@RequestBody UserPostDTO userPostDTO) {
+  public ResponseEntity<UserGetDTO> createUser(@RequestBody UserPostDTO userPostDTO) {
     // convert API user to internal representation
     User userInput = DTOMapper.INSTANCE.convertUserPostDTOtoEntity(userPostDTO);
-
     // create user
     User createdUser = userService.createUser(userInput);
     // convert internal representation of user back to API
-    return DTOMapper.INSTANCE.convertEntityToUserGetDTO(createdUser);
+    String token = createdUser.getToken();
+    UserGetDTO userDTO = DTOMapper.INSTANCE.convertEntityToUserGetDTO(createdUser);
+    
+    return ResponseEntity
+        .status(HttpStatus.CREATED) //201
+        .header("Authorization", "Bearer " + token)
+        .body(userDTO);
   }
 }

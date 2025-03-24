@@ -41,7 +41,7 @@ public class UserService {
 
   public User createUser(User newUser) {
     newUser.setToken(UUID.randomUUID().toString());
-    newUser.setOnlineStatus(UserStatus.OFFLINE);
+    newUser.setOnlineStatus(UserStatus.ONLINE);
     checkIfUserExists(newUser);
     // saves the given entity but data is only persisted in the database once
     // flush() is called
@@ -63,17 +63,18 @@ public class UserService {
    * @see User
    */
   private void checkIfUserExists(User userToBeCreated) {
-    User userByUsername = userRepository.findByUsername(userToBeCreated.getUsername());
-    User userByName = userRepository.findByName(userToBeCreated.getName());
-
-    String baseErrorMessage = "The %s provided %s not unique. Therefore, the user could not be created!";
-    if (userByUsername != null && userByName != null) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-          String.format(baseErrorMessage, "username and the name", "are"));
-    } else if (userByUsername != null) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format(baseErrorMessage, "username", "is"));
-    } else if (userByName != null) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format(baseErrorMessage, "name", "is"));
+    String username = userToBeCreated.getUsername(); 
+    if (username == null || username.isBlank()) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username can't be null or blank!"); 
     }
+    
+    User userByUsername = userRepository.findByUsername(userToBeCreated.getUsername());
+    if (userByUsername != null) {
+      String errorMessage = String.format(
+          "The username '%s' is not unique. User could not be created!",
+          userToBeCreated.getUsername()
+      );
+      throw new ResponseStatusException(HttpStatus.CONFLICT,errorMessage);
+    } 
   }
 }
