@@ -39,6 +39,7 @@ public class UserService {
     return this.userRepository.findAll();
   }
 
+  //register 
   public User createUser(User newUser) {
     newUser.setToken(UUID.randomUUID().toString());
     newUser.setOnlineStatus(UserStatus.ONLINE);
@@ -50,6 +51,21 @@ public class UserService {
 
     log.debug("Created Information for User: {}", newUser);
     return newUser;
+  }
+
+  //login
+  public User loginUser(String username, String password) {
+    User existingUser = userRepository.findByUsername(username); 
+    if (existingUser == null){
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "This username does not exist"); 
+    }
+    if (!existingUser.getPassword().equals(password)){
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Incorrect password"); 
+    }
+
+    existingUser.setToken(UUID.randomUUID().toString());
+    existingUser.setOnlineStatus(UserStatus.ONLINE);
+    return existingUser;
   }
 
   /**
@@ -71,7 +87,7 @@ public class UserService {
     User userByUsername = userRepository.findByUsername(userToBeCreated.getUsername());
     if (userByUsername != null) {
       String errorMessage = String.format(
-          "The username '%s' is not unique. User could not be created!",
+          "The username '%s' is already taken. User could not be created!",
           userToBeCreated.getUsername()
       );
       throw new ResponseStatusException(HttpStatus.CONFLICT,errorMessage);

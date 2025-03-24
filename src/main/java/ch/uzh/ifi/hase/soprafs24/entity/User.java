@@ -33,6 +33,9 @@ public class User implements Serializable {
 
   @Column(nullable = false)
   private UserStatus onlineStatus;
+
+  @Column(nullable = false)
+  private String password; 
   
   @Column
   private Integer wins;
@@ -99,5 +102,13 @@ public class User implements Serializable {
 
     public void setReady(Boolean ready) {
         this.ready = ready;
+    }
+
+    public String getPassword(){
+      return password;
+    }
+
+    public void setPassword(String password){
+      this.password = password;
     }
 }

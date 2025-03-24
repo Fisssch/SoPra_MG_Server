@@ -2,6 +2,7 @@ package ch.uzh.ifi.hase.soprafs24.controller;
 
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserLoginDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
@@ -58,6 +59,20 @@ public class UserController {
     
     return ResponseEntity
         .status(HttpStatus.CREATED) //201
+        .header("Authorization", "Bearer " + token)
+        .body(userDTO);
+  }
+
+  //login 
+  @PostMapping("/users/login")
+  @ResponseBody 
+  public ResponseEntity<UserGetDTO> loginUser(@RequestBody UserLoginDTO userLoginDTO) {
+    User authUser = userService.loginUser(userLoginDTO.getUsername(), userLoginDTO.getPassword()); 
+    String token = authUser.getToken();
+    UserGetDTO userDTO = DTOMapper.INSTANCE.convertEntityToUserGetDTO(authUser);
+
+    return ResponseEntity
+        .status(HttpStatus.OK) //200
         .header("Authorization", "Bearer " + token)
         .body(userDTO);
   }
