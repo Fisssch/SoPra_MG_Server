@@ -22,6 +22,11 @@ import java.util.Map;
  * The controller will receive the request and delegate the execution to the
  * UserService and finally return the result.
  */
+
+@CrossOrigin(
+  origins = "http://localhost:3000", 
+  exposedHeaders = "Authorization"
+) 
 @RestController
 public class UserController {
 
