@@ -19,7 +19,17 @@ public class Player implements Serializable {
 
     @Column
     private String role; // "spymaster" oder "field operative"
+    /**
+     * Setter nur für Testzwecke.
+     * In der Anwendung wird die ID automatisch generiert.
+     */
+    public void setId(Long id) {
+        this.id = id;
+    }
 
+    public Long getId() {
+        return id;
+    }
     public Team getTeam() {
         return team;
     }
