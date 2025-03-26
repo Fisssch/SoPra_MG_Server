@@ -83,32 +83,43 @@ public class User implements Serializable {
     this.onlineStatus = status;
   }
 
-    public void setLosses(Integer losses) {
-        this.losses = losses;
-    }
+  public Integer getWins(){
+    return wins;
+  }
 
-    public Integer getBlackCardGuesses() {
-        return blackCardGuesses;
-    }
+  public void setWins(Integer wins){
+    this.wins = wins;
+  }
 
-    public void setBlackCardGuesses(Integer blackCardGuesses) {
-        this.blackCardGuesses = blackCardGuesses;
-    }
+  public Integer getLosses(){
+    return losses; 
+  }
 
+  public void setLosses(Integer losses) {
+    this.losses = losses;
+  }
 
-    public Boolean getReady() {
-        return ready;
-    }
+  public Integer getBlackCardGuesses() {
+    return blackCardGuesses;
+  }
 
-    public void setReady(Boolean ready) {
-        this.ready = ready;
-    }
+  public void setBlackCardGuesses(Integer blackCardGuesses) {
+      this.blackCardGuesses = blackCardGuesses;
+  }
 
-    public String getPassword(){
-      return password;
-    }
+  public Boolean getReady() {
+    return ready;
+  }
 
-    public void setPassword(String password){
-      this.password = password;
-    }
+  public void setReady(Boolean ready) {
+    this.ready = ready;
+  }
+
+  public String getPassword(){
+    return password;
+  }
+
+  public void setPassword(String password){
+    this.password = password;
+  }
 }

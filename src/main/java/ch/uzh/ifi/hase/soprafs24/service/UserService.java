@@ -43,6 +43,9 @@ public class UserService {
   public User createUser(User newUser) {
     newUser.setToken(UUID.randomUUID().toString());
     newUser.setOnlineStatus(UserStatus.ONLINE);
+    newUser.setWins(0);
+    newUser.setLosses(0);
+    newUser.setBlackCardGuesses(0);
     checkIfUserExists(newUser);
     // saves the given entity but data is only persisted in the database once
     // flush() is called
