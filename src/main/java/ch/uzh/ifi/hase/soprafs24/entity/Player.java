@@ -3,17 +3,16 @@ package ch.uzh.ifi.hase.soprafs24.entity;
 
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.io.Serializable;
+import ch.uzh.ifi.hase.soprafs24.constant.PlayerRole;
 
 @Document(collection = "PLAYER")
-public class Player implements Serializable {
+public class Player extends DatabaseEntity {
 
     private static final long serialVersionUID = 1L;
 
-    @ManyToOne
     private Team team;
 
-    private String role; // "spymaster" oder "field operative"
+    private PlayerRole role; // "spymaster" oder "field operative"
 
     public Team getTeam() {
         return team;
@@ -23,11 +22,11 @@ public class Player implements Serializable {
         this.team = team;
     }
 
-    public String getRole() {
+    public PlayerRole getRole() {
         return role;
     }
 
-    public void setRole(String role) {
+    public void setRole(PlayerRole role) {
         this.role = role;
     }
 

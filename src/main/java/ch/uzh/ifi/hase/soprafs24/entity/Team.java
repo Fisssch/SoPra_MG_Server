@@ -2,8 +2,8 @@ package ch.uzh.ifi.hase.soprafs24.entity;
 
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.io.Serializable;
 import java.util.List;
+import org.springframework.data.mongodb.core.mapping.DBRef;
 
 @Document(collection =  "TEAM")
 public class Team extends DatabaseEntity {
@@ -12,10 +12,10 @@ public class Team extends DatabaseEntity {
 
     private String color; // "red" oder "blue"
 
-    @OneToMany(mappedBy = "team", cascade = CascadeType.ALL)
-    private List<Player> players;
+    @DBRef(lazy = true)
+    private List<Player> players; // TODO: Test if it works (probably not)
 
-    @OneToOne
+    @DBRef(lazy = true)
     private Player spymaster;
 
     public String getColor() {
