@@ -40,6 +40,7 @@ public class UserService {
     return this.userRepository.findAll();
   }
 
+  //get user
   public User getUserById(Long id){
     return userRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found")); 
     
@@ -83,6 +84,47 @@ public class UserService {
     userRepository.save(user);
   }
 
+  //update username 
+  public void updateUsername(Long id, String newUsername, String token){
+    User user = validateToken(token); 
+
+    if (!user.getId().equals(id)) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only update your own profile.");
+  }
+
+  if (newUsername == null || newUsername.trim().isEmpty()){
+    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username can't be empty");
+  }
+
+  User existingUser = userRepository.findByUsername(newUsername);
+    if (existingUser != null && !existingUser.getId().equals(id)) {
+        throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already taken.");
+    }
+
+  user.setUsername(newUsername);
+  userRepository.save(user); 
+  }
+
+  //update password 
+  public void updatePassword(Long id, String oldPassword, String newPassword, String token) {
+    User user = validateToken(token);
+
+    if (!user.getId().equals(id)) {
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "You can only update your own profile.");
+    }
+
+    if (newPassword == null || newPassword.trim().isEmpty()) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "New password cannot be empty.");
+    }
+
+    if (!user.getPassword().equals(oldPassword)) {
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Old password is incorrect."); 
+    }
+
+    user.setPassword(newPassword);
+    userRepository.save(user);
+}
+
 
   //////////////////// helper methods: ////////////////////
 
@@ -118,7 +160,7 @@ public class UserService {
     }
     User user = userRepository.findByToken(token); 
     if (user == null){
-      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authentification");
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
     }
     return user;
   }
