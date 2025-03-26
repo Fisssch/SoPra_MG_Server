@@ -70,11 +70,8 @@ public class UserService {
   }
 
   //logout 
-  public void logoutUser(String username, String token) {
+  public void logoutUser(String token) {
     User user = validateToken(token); 
-    if (!user.getUsername().equals(username)){
-      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authentification");
-    }
     user.setOnlineStatus(UserStatus.OFFLINE);
     user.setToken(null);
     userRepository.save(user);
@@ -114,7 +111,6 @@ public class UserService {
     if (user == null){
       throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authentification");
     }
-    System.out.println("notnull");
     return user;
   }
 
