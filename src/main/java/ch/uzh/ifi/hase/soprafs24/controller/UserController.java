@@ -36,11 +36,13 @@ public class UserController {
     this.userService = userService;
   }
 
-  //GET /users 200 
+  //users overview 
   @GetMapping("/users")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
-  public List<UserGetDTO> getAllUsers() {
+  public List<UserGetDTO> getAllUsers(@RequestHeader("Authorization") String authHeader) {
+    String token = userService.extractToken(authHeader);
+    userService.validateToken(token);
     // fetch all users in the internal representation
     List<User> users = userService.getUsers();
     List<UserGetDTO> userGetDTOs = new ArrayList<>();
