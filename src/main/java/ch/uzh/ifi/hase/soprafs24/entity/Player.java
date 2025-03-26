@@ -1,23 +1,18 @@
 
 package ch.uzh.ifi.hase.soprafs24.entity;
 
-import javax.persistence.*;
-        import java.io.Serializable;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-@Entity
-@Table(name = "PLAYER")
+import java.io.Serializable;
+
+@Document(collection = "PLAYER")
 public class Player implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    @Id
-    @GeneratedValue
-    private Long id;
-
     @ManyToOne
     private Team team;
 
-    @Column
     private String role; // "spymaster" oder "field operative"
 
     public Team getTeam() {
