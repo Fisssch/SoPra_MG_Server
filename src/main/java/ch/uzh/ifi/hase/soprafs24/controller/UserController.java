@@ -36,6 +36,16 @@ public class UserController {
     this.userService = userService;
   }
 
+  @GetMapping("/users/{id}")
+  @ResponseStatus(HttpStatus.OK)
+  @ResponseBody
+  public UserGetDTO getUser(@RequestHeader("Authorization") String authHeader, @PathVariable Long id){
+    String token = userService.extractToken(authHeader); 
+    userService.validateToken(token); 
+    User user = userService.getUserById(id); 
+    return DTOMapper.INSTANCE.convertEntityToUserGetDTO(user); 
+  }
+
   //users overview 
   @GetMapping("/users")
   @ResponseStatus(HttpStatus.OK)

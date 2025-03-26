@@ -35,9 +35,14 @@ public class UserService {
     this.userRepository = userRepository;
   }
 
-  //get user 
+  //get users  
   public List<User> getUsers() {
     return this.userRepository.findAll();
+  }
+
+  public User getUserById(Long id){
+    return userRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found")); 
+    
   }
 
   //register 
