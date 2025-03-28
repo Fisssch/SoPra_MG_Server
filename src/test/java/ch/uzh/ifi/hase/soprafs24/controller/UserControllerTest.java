@@ -55,9 +55,10 @@ public class UserControllerTest {
     // this mocks the UserService -> we define above what the userService should
     // return when getUsers() is called
     given(userService.getUsers()).willReturn(allUsers);
+    given(userService.validateToken(Mockito.any())).willReturn(user);
 
     // when
-    MockHttpServletRequestBuilder getRequest = get("/users").contentType(MediaType.APPLICATION_JSON);
+    MockHttpServletRequestBuilder getRequest = get("/users").header("Authorization", "123").contentType(MediaType.APPLICATION_JSON);
 
     // then
     mockMvc.perform(getRequest).andExpect(status().isOk())
