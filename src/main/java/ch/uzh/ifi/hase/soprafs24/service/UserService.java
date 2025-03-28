@@ -37,8 +37,15 @@ public class UserService {
     this.userRepository = userRepository;
   }
 
+  //get users  
   public List<User> getUsers() {
     return this.userRepository.findAll();
+  }
+
+  //get user
+  public User getUserById(Long id){
+    return userRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found")); 
+    
   }
 
   //register 
@@ -46,6 +53,9 @@ public class UserService {
     newUser.setToken(UUID.randomUUID().toString());
     newUser.setOnlineStatus(UserStatus.ONLINE);
     newUser.setCreationDate(LocalDateTime.now());
+    newUser.setWins(0);
+    newUser.setLosses(0);
+    newUser.setBlackCardGuesses(0);
     checkIfUserExists(newUser);
     newUser = userRepository.insert(newUser);
 
@@ -77,6 +87,50 @@ public class UserService {
     userRepository.save(user);
   }
 
+  //update username 
+  public void updateUsername(Long id, String newUsername, String token){
+    User user = validateToken(token); 
+
+    if (!user.getId().equals(id)) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only update your own profile.");
+  }
+
+  if (newUsername == null || newUsername.trim().isEmpty()){
+    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username can't be empty");
+  }
+
+  User existingUser = userRepository.findByUsername(newUsername);
+    if (existingUser != null && !existingUser.getId().equals(id)) {
+        throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already taken.");
+    }
+
+  user.setUsername(newUsername);
+  userRepository.save(user); 
+  }
+
+  //update password 
+  public void updatePassword(Long id, String oldPassword, String newPassword, String token) {
+    User user = validateToken(token);
+
+    if (!user.getId().equals(id)) {
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "You can only update your own profile.");
+    }
+
+    if (newPassword == null || newPassword.trim().isEmpty()) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "New password cannot be empty.");
+    }
+
+    if (!user.getPassword().equals(oldPassword)) {
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Old password is incorrect."); 
+    }
+
+    user.setPassword(newPassword);
+    userRepository.save(user);
+}
+
+
+  //////////////////// helper methods: ////////////////////
+
   /**
    * This is a helper method that will check the uniqueness criteria of the
    * username and the name
@@ -103,13 +157,13 @@ public class UserService {
     } 
   }
 
-  private User validateToken(String token){
+  public User validateToken(String token){
     if (token == null || token.isEmpty()){
       throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing authentification");
     }
     User user = userRepository.findByToken(token); 
     if (user == null){
-      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authentification");
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
     }
     return user;
   }
