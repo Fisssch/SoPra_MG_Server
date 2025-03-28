@@ -18,6 +18,8 @@ public class Game extends DatabaseEntity {
     private String status;
     private String winningTeam;
     private GameMode gameMode;
+    private String currentHint;
+    private int wordCount;
 
     public GameMode getGameMode(){
         return gameMode;
@@ -75,5 +77,12 @@ public class Game extends DatabaseEntity {
         this.board = board; 
     }
 
+    public Map.Entry<String, Integer> getCurrentHint() {
+        return Map.entry(currentHint, wordCount);
+    }
 
+    public void setCurrentHint(String currentHint, Integer wordCount) {
+        this.currentHint = currentHint;
+        this.wordCount = wordCount;
+    }
 }

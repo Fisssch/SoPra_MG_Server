@@ -3,46 +3,42 @@ package ch.uzh.ifi.hase.soprafs24.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
 import ch.uzh.ifi.hase.soprafs24.constant.TeamColor;
 import ch.uzh.ifi.hase.soprafs24.entity.Card;
 import ch.uzh.ifi.hase.soprafs24.entity.Game;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GameStartDTO;
-import ch.uzh.ifi.hase.soprafs24.service.GameService;
-import ch.uzh.ifi.hase.soprafs24.service.UserService;
-import ch.uzh.ifi.hase.soprafs24.service.WebsocketService;
-import ch.uzh.ifi.hase.soprafs24.service.WordGenerationService;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.GiveHintDTO;
+import ch.uzh.ifi.hase.soprafs24.service.*;
 
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.*;
+
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-
-@CrossOrigin(
-  origins = "http://localhost:3000", 
-  exposedHeaders = "Authorization"
-) 
 @RestController
 public class GameController {  
     private final GameService gameService;
     private final WebsocketService webSocketService;
     private final UserService userService;
-    private final WordGenerationService wordGenerationService;
     
-    GameController(GameService gameService, WebsocketService webSocketService, UserService userService, WordGenerationService wordGenerationService) {
+    GameController(GameService gameService, WebsocketService webSocketService, UserService userService) {
         this.gameService = gameService;
         this.webSocketService = webSocketService;
         this.userService = userService;
-        this.wordGenerationService = wordGenerationService;
+    }
+
+    @PutMapping("game/{id}/hint")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void giveHint(@PathVariable Long id, @RequestHeader("Authorization") String authHeader, @RequestBody GiveHintDTO hint) {
+        userService.extractAndValidateToken(authHeader); 
+        gameService.validateHint(hint.getHint(), hint.getWordsCount(), id);
+        webSocketService.sendMessage("/topic/game/" + id + "/hint/", hint);
     }
 
     @GetMapping("/game/{id}/words")

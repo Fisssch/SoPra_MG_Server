@@ -17,25 +17,37 @@ import ch.uzh.ifi.hase.soprafs24.constant.CardColor;
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
 import ch.uzh.ifi.hase.soprafs24.entity.Card;
 import ch.uzh.ifi.hase.soprafs24.entity.Game;
-import ch.uzh.ifi.hase.soprafs24.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs24.service.WordGenerationService;
 import ch.uzh.ifi.hase.soprafs24.constant.TeamColor;
 
-
-
+import ch.uzh.ifi.hase.soprafs24.repository.GameRepository;
+import ch.uzh.ifi.hase.soprafs24.repository.TeamRepository;
 
 @Service
 @Transactional
 public class GameService {
-
+  
   private final Logger log = LoggerFactory.getLogger(GameService.class);
   private final WordGenerationService wordGenerationService;
   private final GameRepository gameRepository;
+  private final TeamRepository teamRepository;
 
-  @Autowired
-  public GameService(WordGenerationService wordGenerationService, GameRepository gameRepository) {
+  public GameService(WordGenerationService wordGenerationService, GameRepository gameRepository, TeamRepository teamRepository) {
     this.wordGenerationService = wordGenerationService;
     this.gameRepository = gameRepository;
+    this.teamRepository = teamRepository;
+  }
+    
+  public void validateHint(String hint, Integer wordCount, Long gameId) {
+    if (hint == null || hint.isEmpty() || hint.contains(" ")) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Hint cannot be empty and only one word is allowed");
+    }
+    if (wordCount == null || wordCount < 1) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Word count must be at least 1");
+    }
+    var game = gameRepository.findById(gameId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+    game.setCurrentHint(hint, wordCount);
+    gameRepository.save(game);
   }
 
   public Game startOrGetGame(Long id, TeamColor startingTeam, GameMode gameMode, String theme) {
