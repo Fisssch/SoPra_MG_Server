@@ -167,6 +167,11 @@ public class UserService {
     }
     return user;
   }
+  
+  public void extractAndValidateToken(String header) {
+    String token = extractToken(header);
+    validateToken(token);
+  }
 
   public String extractToken(String header){
     if (header == null){
