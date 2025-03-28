@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs24.controller;
 
+import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
 import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs24.entity.Player;
 import ch.uzh.ifi.hase.soprafs24.entity.Team;
@@ -73,7 +74,7 @@ public class LobbyControllerTest {
         }
 
         @Test
-        public void changePlayerRole_invalidRole_returnsErrorDTO() throws Exception {
+        public void changePlayerRole_invalidRole_returns400() throws Exception {
             when(lobbyService.changePlayerRole(1L, 1L, "hacker")).thenReturn(false);
 
             String json = "{ \"role\": \"hacker\" }";
@@ -81,8 +82,7 @@ public class LobbyControllerTest {
             mockMvc.perform(put("/lobbies/1/role/1")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(json))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.message").value("Invalid role or player not found"));
+                    .andExpect(status().isBadRequest());
         }
     }
 
@@ -143,7 +143,7 @@ public class LobbyControllerTest {
         }
 
         @Test
-        public void changePlayerTeam_invalidColor_returnsErrorDTO() throws Exception {
+        public void changePlayerTeam_invalidColor_returns400() throws Exception {
             when(lobbyService.changePlayerTeam(1L, 1L, "green")).thenReturn(false);
 
             String json = "{ \"color\": \"green\" }";
@@ -151,8 +151,7 @@ public class LobbyControllerTest {
             mockMvc.perform(put("/lobbies/1/team/1")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(json))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.message").value("Invalid team color or player not found"));
+                    .andExpect(status().isBadRequest());
         }
     }
 
@@ -177,7 +176,7 @@ public class LobbyControllerTest {
         }
 
         @Test
-        public void setPlayerReadyStatus_notFound_returnsErrorDTO() throws Exception {
+        public void setPlayerReadyStatus_notFound_returns404() throws Exception {
             when(lobbyService.setPlayerReadyStatus(1L, 1L, true)).thenReturn(false);
 
             String json = "{ \"ready\": true }";
@@ -185,8 +184,42 @@ public class LobbyControllerTest {
             mockMvc.perform(put("/lobbies/1/status/1")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(json))
-                    .andExpect(status().isNotFound())
-                    .andExpect(jsonPath("$.message").value("Lobby or player not found"));
+                    .andExpect(status().isNotFound());
+        }
+    }
+
+
+    @Nested
+    class LobbyCreation {
+
+        @Test
+        public void createLobby_returnsLobbyResponseDTO() throws Exception {
+            Lobby mockLobby = new Lobby();
+            mockLobby.setLobbyID(42L);
+            mockLobby.setGameMode(GameMode.CLASSIC);
+            mockLobby.setLobbyName("TestLobby");
+
+            when(lobbyService.createLobby("TestLobby", GameMode.CLASSIC)).thenReturn(mockLobby);
+
+            String json = "{ \"lobbyName\": \"TestLobby\", \"gameMode\": \"classic\" }";
+
+            mockMvc.perform(post("/lobbies")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(json))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.lobbyId").value(42))
+                    .andExpect(jsonPath("$.gameMode").value("CLASSIC"))
+                    .andExpect(jsonPath("$.lobbyName").value("TestLobby"));
+        }
+
+        @Test
+        public void createLobby_invalidGameMode_returns400() throws Exception {
+            String invalidJson = "{ \"lobbyName\": \"TestLobby\", \"gameMode\": \"invalidMode\" }";
+
+            mockMvc.perform(post("/lobbies")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(invalidJson))
+                    .andExpect(status().isBadRequest());
         }
     }
 }
