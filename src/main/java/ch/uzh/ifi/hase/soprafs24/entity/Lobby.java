@@ -1,44 +1,37 @@
 package ch.uzh.ifi.hase.soprafs24.entity;
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
-import javax.persistence.*;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-@Entity
-@Table(name = "LOBBY")
-public class Lobby implements Serializable {
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.index.Indexed;
+
+@Document(collection = "LOBBY")
+public class Lobby extends DatabaseEntity {
 
     private static final long serialVersionUID = 1L;
 
-    @Id
-    @GeneratedValue
-    private Long lobbyID;
-
-    @Column(nullable = false)
     private String lobbyName;
 
-    @Enumerated(EnumType.STRING)
     private GameMode gameMode;
 
-    @OneToMany(cascade = CascadeType.ALL)
-    private List<Player> players = new ArrayList<>();
+    private List<Player> players = new ArrayList<>(); // TODO: Teste öb das funktioniert
 
-    @Column(unique = true)
+    @Indexed(unique = true)
     private Integer lobbyCode;
-    @OneToOne(cascade = CascadeType.ALL)
+  
     private Team redTeam;
 
-    @OneToOne(cascade = CascadeType.ALL)
     private Team blueTeam;
-    // --- Getter & Setter ---
 
+    // --- Getter & Setter ---
     public Long getLobbyID() {
-        return lobbyID;
+        return id;
     }
 
     public void setLobbyID(Long lobbyID) {
-        this.lobbyID = lobbyID;
+        this.id = lobbyID;
     }
 
     public String getLobbyName() {
@@ -49,12 +42,9 @@ public class Lobby implements Serializable {
         this.lobbyName = lobbyName;
     }
 
-    public GameMode getGameMode() {
-        return gameMode;
-    }
-
     public void setGameMode(GameMode gameMode) {
-        this.gameMode = gameMode;
+        if (gameMode != null)
+            this.gameMode = gameMode;
     }
 
     public List<Player> getPlayers() {
@@ -76,6 +66,7 @@ public class Lobby implements Serializable {
     public void setLobbyCode(Integer lobbyCode) {
         this.lobbyCode = lobbyCode;
     }
+  
     public Team getRedTeam() {
         return redTeam;
     }

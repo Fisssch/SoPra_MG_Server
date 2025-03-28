@@ -5,6 +5,7 @@ import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs24.entity.Player;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.*;
 import ch.uzh.ifi.hase.soprafs24.service.LobbyService;
+import ch.uzh.ifi.hase.soprafs24.service.WebsocketService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -15,10 +16,12 @@ import org.springframework.web.server.ResponseStatusException;
 public class LobbyController {
 
     private final LobbyService lobbyService;
+    private final WebsocketService webSocketService;
 
-    @Autowired
-    public LobbyController(LobbyService lobbyService) {
+    @Autowired    
+    LobbyController(LobbyService lobbyService, WebsocketService webSocketService) {
         this.lobbyService = lobbyService;
+        this.webSocketService = webSocketService;
     }
 
     @PostMapping
