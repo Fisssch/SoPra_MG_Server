@@ -35,8 +35,14 @@ public class UserService {
     this.userRepository = userRepository;
   }
 
+  //get users  
   public List<User> getUsers() {
     return this.userRepository.findAll();
+  }
+
+  public User getUserById(Long id){
+    return userRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found")); 
+    
   }
 
   //register 
@@ -80,6 +86,9 @@ public class UserService {
     userRepository.save(user);
   }
 
+
+  //////////////////// helper methods: ////////////////////
+
   /**
    * This is a helper method that will check the uniqueness criteria of the
    * username and the name
@@ -106,7 +115,7 @@ public class UserService {
     } 
   }
 
-  private User validateToken(String token){
+  public User validateToken(String token){
     if (token == null || token.isEmpty()){
       throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing authentification");
     }

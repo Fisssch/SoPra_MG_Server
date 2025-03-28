@@ -35,11 +35,23 @@ public class UserController {
     this.userService = userService;
   }
 
-  //GET /users 200 
+  @GetMapping("/users/{id}")
+  @ResponseStatus(HttpStatus.OK)
+  @ResponseBody
+  public UserGetDTO getUser(@RequestHeader("Authorization") String authHeader, @PathVariable Long id){
+    String token = userService.extractToken(authHeader); 
+    userService.validateToken(token); 
+    User user = userService.getUserById(id); 
+    return DTOMapper.INSTANCE.convertEntityToUserGetDTO(user); 
+  }
+
+  //users overview 
   @GetMapping("/users")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
-  public List<UserGetDTO> getAllUsers() {
+  public List<UserGetDTO> getAllUsers(@RequestHeader("Authorization") String authHeader) {
+    String token = userService.extractToken(authHeader);
+    userService.validateToken(token);
     // fetch all users in the internal representation
     List<User> users = userService.getUsers();
     List<UserGetDTO> userGetDTOs = new ArrayList<>();
