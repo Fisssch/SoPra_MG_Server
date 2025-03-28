@@ -6,19 +6,18 @@ import ch.uzh.ifi.hase.soprafs24.entity.Player;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.*;
 import ch.uzh.ifi.hase.soprafs24.service.LobbyService;
 import ch.uzh.ifi.hase.soprafs24.service.WebsocketService;
-import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
-@RequestMapping("/lobbies")
+@RequestMapping("/lobby")
 public class LobbyController {
 
     private final LobbyService lobbyService;
     private final WebsocketService webSocketService;
-
-    @Autowired    
+  
     LobbyController(LobbyService lobbyService, WebsocketService webSocketService) {
         this.lobbyService = lobbyService;
         this.webSocketService = webSocketService;
@@ -56,7 +55,7 @@ public class LobbyController {
 
         PlayerResponseDTO response = new PlayerResponseDTO();
         response.setId(addedPlayer.getId());
-        response.setRole(addedPlayer.getRole());
+        response.setRole(addedPlayer.getRole().name());
         response.setReady(addedPlayer.getReady());
         if (addedPlayer.getTeam() != null) {
             response.setTeamColor(addedPlayer.getTeam().getColor());
@@ -76,7 +75,7 @@ public class LobbyController {
                 .findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found"));
 
-        return new PlayerRoleDTO(player.getRole());
+        return new PlayerRoleDTO(player.getRole().name());
     }
 
     @PutMapping("/{id}/role/{playerId}")

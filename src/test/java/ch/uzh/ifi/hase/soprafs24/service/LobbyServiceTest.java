@@ -1,6 +1,7 @@
 package ch.uzh.ifi.hase.soprafs24.service;
 
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
+import ch.uzh.ifi.hase.soprafs24.constant.PlayerRole;
 import ch.uzh.ifi.hase.soprafs24.entity.*;
 import ch.uzh.ifi.hase.soprafs24.repository.LobbyRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -79,12 +80,12 @@ public class LobbyServiceTest {
         // Spymaster-Zählung pro Team
         long redSpymasters = lobby.getPlayers().stream()
                 .filter(p -> p.getTeam().getColor().equals("red"))
-                .filter(p -> "spymaster".equals(p.getRole()))
+                .filter(p -> PlayerRole.SPYMASTER.equals(p.getRole()))
                 .count();
 
         long blueSpymasters = lobby.getPlayers().stream()
                 .filter(p -> p.getTeam().getColor().equals("blue"))
-                .filter(p -> "spymaster".equals(p.getRole()))
+                .filter(p -> PlayerRole.SPYMASTER.equals(p.getRole()))
                 .count();
 
         // ✅ Tests

@@ -1,6 +1,5 @@
 package ch.uzh.ifi.hase.soprafs24.entity;
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,11 +26,11 @@ public class Lobby extends DatabaseEntity {
 
     // --- Getter & Setter ---
     public Long getLobbyID() {
-        return id;
+        return getId();
     }
 
     public void setLobbyID(Long lobbyID) {
-        this.id = lobbyID;
+        setId(lobbyID);
     }
 
     public String getLobbyName() {
@@ -40,6 +39,10 @@ public class Lobby extends DatabaseEntity {
 
     public void setLobbyName(String lobbyName) {
         this.lobbyName = lobbyName;
+    }
+
+    public GameMode getGameMode() {
+        return gameMode;
     }
 
     public void setGameMode(GameMode gameMode) {

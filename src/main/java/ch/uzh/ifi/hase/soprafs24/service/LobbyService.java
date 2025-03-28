@@ -2,17 +2,15 @@ package ch.uzh.ifi.hase.soprafs24.service;
 
 import ch.uzh.ifi.hase.soprafs24.entity.*;
 import ch.uzh.ifi.hase.soprafs24.repository.LobbyRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
-import java.util.Comparator;
+import ch.uzh.ifi.hase.soprafs24.constant.PlayerRole;
 
 @Service
 public class LobbyService {
 
     private final LobbyRepository lobbyRepository;
 
-    @Autowired
     public LobbyService(LobbyRepository lobbyRepository) {
         this.lobbyRepository = lobbyRepository;
     }
@@ -36,10 +34,10 @@ public class LobbyService {
         player.setTeam(assignedTeam);
 
         if (assignedTeam.getSpymaster() == null) {
-            player.setRole("spymaster");
+            player.setRole(PlayerRole.SPYMASTER);
             assignedTeam.setSpymaster(player);
         } else {
-            player.setRole("field operative");
+            player.setRole(PlayerRole.FIELD_OPERATIVE);
         }
 
         lobby.addPlayer(player);
@@ -104,8 +102,10 @@ public class LobbyService {
 
         if (player == null) return false;
 
-        if ("spymaster".equalsIgnoreCase(role) || "field operative".equalsIgnoreCase(role)) {
-            player.setRole(role);
+        if ("spymaster".equalsIgnoreCase(role)) {
+            player.setRole(PlayerRole.SPYMASTER);
+        } else if ("field operative".equalsIgnoreCase(role)) {
+            player.setRole(PlayerRole.FIELD_OPERATIVE);
         } else {
             return false;
         }
