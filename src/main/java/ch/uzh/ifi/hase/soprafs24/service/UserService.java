@@ -39,9 +39,13 @@ public class UserService {
     return this.userRepository.findAll();
   }
 
+  //register 
   public User createUser(User newUser) {
     newUser.setToken(UUID.randomUUID().toString());
-    newUser.setStatus(UserStatus.OFFLINE);
+    newUser.setOnlineStatus(UserStatus.ONLINE);
+    newUser.setWins(0);
+    newUser.setLosses(0);
+    newUser.setBlackCardGuesses(0);
     checkIfUserExists(newUser);
     // saves the given entity but data is only persisted in the database once
     // flush() is called
@@ -50,6 +54,30 @@ public class UserService {
 
     log.debug("Created Information for User: {}", newUser);
     return newUser;
+  }
+
+  //login
+  public User loginUser(String username, String password) {
+    User existingUser = userRepository.findByUsername(username); 
+    if (existingUser == null){
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "This username does not exist"); 
+    }
+    if (!existingUser.getPassword().equals(password)){
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Incorrect password"); 
+    }
+
+    existingUser.setToken(UUID.randomUUID().toString());
+    existingUser.setOnlineStatus(UserStatus.ONLINE);
+    userRepository.save(existingUser);
+    return existingUser;
+  }
+
+  //logout 
+  public void logoutUser(String token) {
+    User user = validateToken(token); 
+    user.setOnlineStatus(UserStatus.OFFLINE);
+    user.setToken(null);
+    userRepository.save(user);
   }
 
   /**
@@ -63,17 +91,36 @@ public class UserService {
    * @see User
    */
   private void checkIfUserExists(User userToBeCreated) {
-    User userByUsername = userRepository.findByUsername(userToBeCreated.getUsername());
-    User userByName = userRepository.findByName(userToBeCreated.getName());
-
-    String baseErrorMessage = "The %s provided %s not unique. Therefore, the user could not be created!";
-    if (userByUsername != null && userByName != null) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-          String.format(baseErrorMessage, "username and the name", "are"));
-    } else if (userByUsername != null) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format(baseErrorMessage, "username", "is"));
-    } else if (userByName != null) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format(baseErrorMessage, "name", "is"));
+    String username = userToBeCreated.getUsername(); 
+    if (username == null || username.isBlank()) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username can't be null or blank!"); 
     }
+    
+    User userByUsername = userRepository.findByUsername(userToBeCreated.getUsername());
+    if (userByUsername != null) {
+      String errorMessage = String.format(
+          "The username '%s' is already taken. User could not be created!",
+          userToBeCreated.getUsername()
+      );
+      throw new ResponseStatusException(HttpStatus.CONFLICT,errorMessage);
+    } 
+  }
+
+  private User validateToken(String token){
+    if (token == null || token.isEmpty()){
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing authentification");
+    }
+    User user = userRepository.findByToken(token); 
+    if (user == null){
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authentification");
+    }
+    return user;
+  }
+
+  public String extractToken(String header){
+    if (header == null){
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing header");
+    }
+    return header.substring(7);
   }
 }

@@ -25,17 +25,31 @@ public class User implements Serializable {
   @GeneratedValue
   private Long id;
 
-  @Column(nullable = false)
-  private String name;
-
   @Column(nullable = false, unique = true)
   private String username;
 
-  @Column(nullable = false, unique = true)
+  @Column(unique = true)
   private String token;
 
   @Column(nullable = false)
-  private UserStatus status;
+  private UserStatus onlineStatus;
+
+  @Column(nullable = false)
+  private String password; 
+  
+  @Column
+  private Integer wins;
+
+  @Column
+  private Integer losses;
+
+  @Column
+  private Integer blackCardGuesses;
+
+  @Column
+  private Boolean ready;
+
+
 
   public Long getId() {
     return id;
@@ -43,14 +57,6 @@ public class User implements Serializable {
 
   public void setId(Long id) {
     this.id = id;
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
   }
 
   public String getUsername() {
@@ -69,11 +75,51 @@ public class User implements Serializable {
     this.token = token;
   }
 
-  public UserStatus getStatus() {
-    return status;
+  public UserStatus getOnlineStatus() {
+    return onlineStatus;
   }
 
-  public void setStatus(UserStatus status) {
-    this.status = status;
+  public void setOnlineStatus (UserStatus status) {
+    this.onlineStatus = status;
+  }
+
+  public Integer getWins(){
+    return wins;
+  }
+
+  public void setWins(Integer wins){
+    this.wins = wins;
+  }
+
+  public Integer getLosses(){
+    return losses; 
+  }
+
+  public void setLosses(Integer losses) {
+    this.losses = losses;
+  }
+
+  public Integer getBlackCardGuesses() {
+    return blackCardGuesses;
+  }
+
+  public void setBlackCardGuesses(Integer blackCardGuesses) {
+      this.blackCardGuesses = blackCardGuesses;
+  }
+
+  public Boolean getReady() {
+    return ready;
+  }
+
+  public void setReady(Boolean ready) {
+    this.ready = ready;
+  }
+
+  public String getPassword(){
+    return password;
+  }
+
+  public void setPassword(String password){
+    this.password = password;
   }
 }
