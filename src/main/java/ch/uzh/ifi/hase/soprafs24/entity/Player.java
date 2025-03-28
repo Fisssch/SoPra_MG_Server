@@ -1,24 +1,21 @@
 
 package ch.uzh.ifi.hase.soprafs24.entity;
 
-import javax.persistence.*;
-        import java.io.Serializable;
+import org.springframework.data.mongodb.core.mapping.DBRef;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-@Entity
-@Table(name = "PLAYER")
-public class Player implements Serializable {
+import ch.uzh.ifi.hase.soprafs24.constant.PlayerRole;
+
+@Document(collection = "PLAYER")
+public class Player extends DatabaseEntity {
 
     private static final long serialVersionUID = 1L;
 
-    @Id
-    @GeneratedValue
-    private Long id;
-
-    @ManyToOne
+    @DBRef(lazy = true)
     private Team team;
 
-    @Column
-    private String role; // "spymaster" oder "field operative"
+    @DBRef(lazy = true)
+    private PlayerRole role; // "spymaster" oder "field operative"
 
     public Team getTeam() {
         return team;
@@ -28,11 +25,11 @@ public class Player implements Serializable {
         this.team = team;
     }
 
-    public String getRole() {
+    public PlayerRole getRole() {
         return role;
     }
 
-    public void setRole(String role) {
+    public void setRole(PlayerRole role) {
         this.role = role;
     }
 

@@ -1,27 +1,22 @@
 package ch.uzh.ifi.hase.soprafs24.entity;
 
-import javax.persistence.*;
-import java.io.Serializable;
-import java.util.List;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-@Entity
-@Table(name = "TEAM")
-public class Team implements Serializable {
+import java.util.List;
+import org.springframework.data.mongodb.core.mapping.DBRef;
+
+@Document(collection =  "TEAM")
+public class Team extends DatabaseEntity {
 
     private static final long serialVersionUID = 1L;
 
-    @Id
-    @GeneratedValue
-    private Long id;
-
-    @Column
     private String color; // "red" oder "blue"
 
-    @OneToMany(mappedBy = "team", cascade = CascadeType.ALL)
-    private List<Player> players;
+    @DBRef(lazy = true)
+    private List<Player> players; // TODO: Test if it works (probably not)
 
-    @OneToOne
-    private Player spymaster;
+    @DBRef(lazy = true)
+    private Player spymaster; // TODO: Test if it works (probably does)
 
     public String getColor() {
         return color;

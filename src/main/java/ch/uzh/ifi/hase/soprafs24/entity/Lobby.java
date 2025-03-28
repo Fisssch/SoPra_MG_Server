@@ -1,8 +1,11 @@
 package ch.uzh.ifi.hase.soprafs24.entity;
 
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
 
-public class Lobby {
+@Document(collection = "LOBBY")
+public class Lobby extends DatabaseEntity {
     public GameMode gameMode;
 
     public void setGameMode(GameMode gameMode) {
