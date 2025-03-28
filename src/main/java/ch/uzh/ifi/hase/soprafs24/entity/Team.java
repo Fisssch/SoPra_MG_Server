@@ -16,7 +16,7 @@ public class Team extends DatabaseEntity {
     private List<Player> players; // TODO: Test if it works (probably not)
 
     @DBRef(lazy = true)
-    private Player spymaster;
+    private Player spymaster; // TODO: Test if it works (probably does)
 
     public String getColor() {
         return color;
