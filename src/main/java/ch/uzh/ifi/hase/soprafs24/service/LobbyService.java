@@ -24,7 +24,6 @@ public class LobbyService {
     public Player addPlayerToLobby(Long lobbyId, Player player) {
         Lobby lobby = getLobbyById(lobbyId);
 
-        // Team-Zuweisung: balance nach Teamgröße
         long redCount = lobby.getPlayers().stream()
                 .filter(p -> "red".equals(p.getTeam().getColor()))
                 .count();
@@ -36,7 +35,6 @@ public class LobbyService {
         Team assignedTeam = redCount <= blueCount ? lobby.getRedTeam() : lobby.getBlueTeam();
         player.setTeam(assignedTeam);
 
-        // Rolle: falls kein Spymaster, dann Spymaster – sonst Field Operative
         if (assignedTeam.getSpymaster() == null) {
             player.setRole("spymaster");
             assignedTeam.setSpymaster(player);
@@ -48,28 +46,97 @@ public class LobbyService {
         lobbyRepository.save(lobby);
         return player;
     }
+
     public Lobby createLobby(String lobbyName, GameMode gameMode) {
         Lobby lobby = new Lobby();
-
         lobby.setLobbyName(lobbyName);
         lobby.setGameMode(gameMode);
         lobby.setLobbyCode(generateLobbyCode());
 
-        // Red Team erstellen
         Team redTeam = new Team();
         redTeam.setColor("red");
-
-        // Blue Team erstellen
         Team blueTeam = new Team();
         blueTeam.setColor("blue");
 
-        // Teams setzen
         lobby.setRedTeam(redTeam);
         lobby.setBlueTeam(blueTeam);
 
         return lobbyRepository.save(lobby);
     }
+
     private int generateLobbyCode() {
-        return (int)(Math.random() * 9000) + 1000; // 4-stelliger zufälliger Code
+        return (int)(Math.random() * 9000) + 1000;
+    }
+
+    public void saveLobby(Lobby lobby) {
+        lobbyRepository.save(lobby);
+    }
+
+    public boolean changePlayerTeam(Long lobbyId, Long playerId, String color) {
+        Lobby lobby = getLobbyById(lobbyId);
+        if (lobby == null) return false;
+
+        Player player = lobby.getPlayers().stream()
+                .filter(p -> playerId.equals(p.getId()))
+                .findFirst().orElse(null);
+
+        if (player == null) return false;
+
+        if ("red".equalsIgnoreCase(color)) {
+            player.setTeam(lobby.getRedTeam());
+        } else if ("blue".equalsIgnoreCase(color)) {
+            player.setTeam(lobby.getBlueTeam());
+        } else {
+            return false;
+        }
+
+        lobbyRepository.save(lobby);
+        return true;
+    }
+
+    public boolean changePlayerRole(Long lobbyId, Long playerId, String role) {
+        Lobby lobby = getLobbyById(lobbyId);
+        if (lobby == null) return false;
+
+        Player player = lobby.getPlayers().stream()
+                .filter(p -> playerId.equals(p.getId()))
+                .findFirst().orElse(null);
+
+        if (player == null) return false;
+
+        if ("spymaster".equalsIgnoreCase(role) || "field operative".equalsIgnoreCase(role)) {
+            player.setRole(role);
+        } else {
+            return false;
+        }
+
+        lobbyRepository.save(lobby);
+        return true;
+    }
+
+    public Boolean getPlayerReadyStatus(Long lobbyId, Long playerId) {
+        Lobby lobby = getLobbyById(lobbyId);
+        if (lobby == null) return null;
+
+        Player player = lobby.getPlayers().stream()
+                .filter(p -> playerId.equals(p.getId()))
+                .findFirst().orElse(null);
+
+        return player != null ? player.getReady() : null;
+    }
+
+    public boolean setPlayerReadyStatus(Long lobbyId, Long playerId, boolean ready) {
+        Lobby lobby = getLobbyById(lobbyId);
+        if (lobby == null) return false;
+
+        Player player = lobby.getPlayers().stream()
+                .filter(p -> playerId.equals(p.getId()))
+                .findFirst().orElse(null);
+
+        if (player == null) return false;
+
+        player.setReady(ready);
+        lobbyRepository.save(lobby);
+        return true;
     }
 }

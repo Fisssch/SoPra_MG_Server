@@ -19,6 +19,8 @@ public class Player implements Serializable {
 
     @Column
     private String role; // "spymaster" oder "field operative"
+
+    private Boolean ready;
     /**
      * Setter nur für Testzwecke.
      * In der Anwendung wird die ID automatisch generiert.
@@ -45,6 +47,12 @@ public class Player implements Serializable {
     public void setRole(String role) {
         this.role = role;
     }
+    public Boolean getReady() {
+        return ready;
+    }
 
+    public void setReady(Boolean ready) {
+        this.ready = ready;
+    }
     // Optional: giveHint() und guessWord() als Platzhalter für spätere Logik
 }
