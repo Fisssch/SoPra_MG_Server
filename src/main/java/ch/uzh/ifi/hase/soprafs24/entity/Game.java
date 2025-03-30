@@ -2,6 +2,7 @@ package ch.uzh.ifi.hase.soprafs24.entity;
 
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
 import ch.uzh.ifi.hase.soprafs24.constant.TeamColor;
 
 import java.util.List;
@@ -13,6 +14,42 @@ public class Game extends DatabaseEntity {
     private List<String> words; 
     private List<Card> board; 
     private TeamColor startingTeam; 
+    private TeamColor teamTurn; 
+    private String status;
+    private String winningTeam;
+    private GameMode gameMode;
+
+    public GameMode getGameMode(){
+        return gameMode;
+    }
+
+    public void setGameMode(GameMode gameMode){
+        this.gameMode = gameMode;
+    }
+
+    public String getWinningTeam(){
+        return winningTeam;
+    }
+
+    public void setWinningTeam(String winningTeam){
+        this.winningTeam = winningTeam;
+    }
+
+    public String getStatus(){
+        return status;
+    }
+
+    public void setStatus(String status){
+        this.status = status;
+    }
+
+    public TeamColor getTeamTurn(){
+        return teamTurn;
+    }
+
+    public void setTeamTurn(TeamColor teamTurn){
+        this.teamTurn = teamTurn;
+    }
 
     public List<String> getWords(){
         return words;
