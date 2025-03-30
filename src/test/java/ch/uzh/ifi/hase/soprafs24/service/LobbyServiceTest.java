@@ -87,8 +87,48 @@ public class LobbyServiceTest {
                 .filter(p -> "spymaster".equals(p.getRole()))
                 .count();
 
-        // ✅ Tests
         assertEquals(1, redSpymasters, "Red team should have exactly one spymaster");
         assertEquals(1, blueSpymasters, "Blue team should have exactly one spymaster");
+    }
+    @Test
+    public void shouldStartGame_returnsTrue_whenAllPlayersReadyAndAtLeastFour() {
+        Lobby lobby = new Lobby();
+
+        for (int i = 0; i < 4; i++) {
+            Player p = new Player();
+            p.setReady(true);
+            lobby.addPlayer(p);
+        }
+
+        boolean result = lobbyService.shouldStartGame(lobby);
+        assertTrue(result, "Game should start when 4+ players are all ready");
+    }
+
+    @Test
+    public void shouldStartGame_returnsFalse_whenNotAllPlayersReady() {
+        Lobby lobby = new Lobby();
+
+        for (int i = 0; i < 4; i++) {
+            Player p = new Player();
+            p.setReady(i < 3); // letzter Spieler ist nicht bereit
+            lobby.addPlayer(p);
+        }
+
+        boolean result = lobbyService.shouldStartGame(lobby);
+        assertFalse(result, "Game should not start if not all players are ready");
+    }
+
+    @Test
+    public void shouldStartGame_returnsFalse_whenLessThanFourPlayers() {
+        Lobby lobby = new Lobby();
+
+        for (int i = 0; i < 3; i++) {
+            Player p = new Player();
+            p.setReady(true);
+            lobby.addPlayer(p);
+        }
+
+        boolean result = lobbyService.shouldStartGame(lobby);
+        assertFalse(result, "Game should not start with less than 4 players");
     }
 }

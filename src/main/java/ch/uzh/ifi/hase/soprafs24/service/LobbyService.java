@@ -136,7 +136,17 @@ public class LobbyService {
         if (player == null) return false;
 
         player.setReady(ready);
+
+        if (shouldStartGame(lobby)) {
+            lobby.setGameStarted(true);
+            // TODO: WebSocket Nachricht an Clients senden
+        }
+
         lobbyRepository.save(lobby);
         return true;
+    }
+    public boolean shouldStartGame(Lobby lobby) {
+        return lobby.getPlayers().size() >= 4 &&
+                lobby.getPlayers().stream().allMatch(p -> Boolean.TRUE.equals(p.getReady()));
     }
 }

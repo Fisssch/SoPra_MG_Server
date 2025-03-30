@@ -31,6 +31,9 @@ public class Lobby implements Serializable {
 
     @OneToOne(cascade = CascadeType.ALL)
     private Team blueTeam;
+    @Column(nullable = false)
+    private boolean gameStarted = false;
+
     // --- Getter & Setter ---
 
     public Long getLobbyID() {
@@ -90,5 +93,13 @@ public class Lobby implements Serializable {
 
     public void setBlueTeam(Team blueTeam) {
         this.blueTeam = blueTeam;
+    }
+
+    public boolean isGameStarted() {
+        return gameStarted;
+    }
+
+    public void setGameStarted(boolean gameStarted) {
+        this.gameStarted = gameStarted;
     }
 }
