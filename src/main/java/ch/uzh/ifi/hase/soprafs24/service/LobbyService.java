@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
 import ch.uzh.ifi.hase.soprafs24.constant.PlayerRole;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 @Service
 public class LobbyService {
@@ -94,7 +96,7 @@ public class LobbyService {
         return true;
     }
 
-    public boolean changePlayerRole(Long lobbyId, Long playerId, String role) {
+    public boolean changePlayerRole(Long lobbyId, Long playerId, String roleStr) {
         Lobby lobby = getLobbyById(lobbyId);
         if (lobby == null) return false;
 
@@ -104,8 +106,14 @@ public class LobbyService {
 
         if (player == null) return false;
 
-        if ("spymaster".equalsIgnoreCase(role)) {
-            // Prüfe ob im selben Team bereits ein Spymaster existiert
+        PlayerRole role;
+        try {
+            role = PlayerRole.valueOf(roleStr.toUpperCase().replace(" ", "_"));
+        } catch (IllegalArgumentException e) {
+            return false; // ungültiger Rollenwert
+        }
+
+        if (role == PlayerRole.SPYMASTER) {
             boolean teamAlreadyHasSpymaster = lobby.getPlayers().stream()
                     .filter(p -> p.getTeam() != null && player.getTeam() != null)
                     .filter(p -> player.getTeam().equals(p.getTeam()))
@@ -114,16 +122,9 @@ public class LobbyService {
             if (teamAlreadyHasSpymaster) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "This team already has a Spymaster.");
             }
-
-            player.setRole(PlayerRole.SPYMASTER);
-        }
-        else if ("field operative".equalsIgnoreCase(role)) {
-            player.setRole(PlayerRole.FIELD_OPERATIVE);
-        }
-        else {
-            return false; // ungültige Rolle
         }
 
+        player.setRole(role);
         lobbyRepository.save(lobby);
         return true;
     }
