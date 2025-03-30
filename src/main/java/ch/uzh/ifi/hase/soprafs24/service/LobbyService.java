@@ -100,20 +100,34 @@ public class LobbyService {
 
         Player player = lobby.getPlayers().stream()
                 .filter(p -> playerId.equals(p.getId()))
-                .findFirst().orElse(null);
+                .findFirst()
+                .orElse(null);
 
         if (player == null) return false;
 
-        if ("spymaster".equalsIgnoreCase(role) || "field operative".equalsIgnoreCase(role)) {
-            player.setRole(role);
-        } else {
-            return false;
+        if ("spymaster".equalsIgnoreCase(role)) {
+            // Prüfe ob im selben Team bereits ein Spymaster existiert
+            boolean teamAlreadyHasSpymaster = lobby.getPlayers().stream()
+                    .filter(p -> p.getTeam() != null && player.getTeam() != null)
+                    .filter(p -> player.getTeam().equals(p.getTeam()))
+                    .anyMatch(p -> PlayerRole.SPYMASTER.equals(p.getRole()) && !p.getId().equals(player.getId()));
+
+            if (teamAlreadyHasSpymaster) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "This team already has a Spymaster.");
+            }
+
+            player.setRole(PlayerRole.SPYMASTER);
+        }
+        else if ("field operative".equalsIgnoreCase(role)) {
+            player.setRole(PlayerRole.FIELD_OPERATIVE);
+        }
+        else {
+            return false; // ungültige Rolle
         }
 
         lobbyRepository.save(lobby);
         return true;
     }
-
     public Boolean getPlayerReadyStatus(Long lobbyId, Long playerId) {
         Lobby lobby = getLobbyById(lobbyId);
         if (lobby == null) return null;

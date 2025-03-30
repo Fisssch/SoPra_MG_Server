@@ -1,6 +1,7 @@
 package ch.uzh.ifi.hase.soprafs24.controller;
 
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
+import ch.uzh.ifi.hase.soprafs24.constant.PlayerRole;
 import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs24.entity.Player;
 import ch.uzh.ifi.hase.soprafs24.entity.Team;
@@ -10,11 +11,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.server.ResponseStatusException;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -35,7 +39,7 @@ public class LobbyControllerTest {
         public void addPlayerToLobby_returnsPlayerWithTeamAndRole() throws Exception {
             Player mockPlayer = new Player();
             mockPlayer.setId(1L);
-            mockPlayer.setRole("spymaster");
+            mockPlayer.setRole(PlayerRole.valueOf("spymaster"));
 
             when(lobbyService.addPlayerToLobby(eq(1L), any(Player.class))).thenReturn(mockPlayer);
 
@@ -53,7 +57,7 @@ public class LobbyControllerTest {
         public void getPlayerRole_returnsRoleDTO() throws Exception {
             Player mockPlayer = new Player();
             mockPlayer.setId(1L);
-            mockPlayer.setRole("spymaster");
+            mockPlayer.setRole(PlayerRole.valueOf("spymaster"));
 
             Lobby mockLobby = new Lobby();
             mockLobby.addPlayer(mockPlayer);
@@ -83,6 +87,20 @@ public class LobbyControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(json))
                     .andExpect(status().isBadRequest());
+        }
+        @Test
+        public void changePlayerRole_spymasterAlreadyExists_returns409() throws Exception {
+            // Simuliere das Verhalten, wenn bereits ein Spymaster vorhanden ist
+            doThrow(new ResponseStatusException(HttpStatus.CONFLICT, "Spymaster already assigned"))
+                    .when(lobbyService).changePlayerRole(1L, 1L, "spymaster");
+
+            String json = "{ \"role\": \"spymaster\" }";
+
+            mockMvc.perform(put("/lobbies/1/role/1")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(json))
+                    .andExpect(status().isConflict())
+                    .andExpect(status().reason("Spymaster already assigned"));
         }
     }
 
@@ -195,7 +213,7 @@ public class LobbyControllerTest {
         @Test
         public void createLobby_returnsLobbyResponseDTO() throws Exception {
             Lobby mockLobby = new Lobby();
-            mockLobby.setLobbyID(42L);
+            mockLobby.setId(String.valueOf(42L));
             mockLobby.setGameMode(GameMode.CLASSIC);
             mockLobby.setLobbyName("TestLobby");
 

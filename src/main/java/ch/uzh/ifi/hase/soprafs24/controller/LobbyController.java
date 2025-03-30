@@ -76,6 +76,11 @@ public class LobbyController {
         return new PlayerRoleDTO(player.getRole());
     }
 
+    /**
+     * Changes the role of a player in a given lobby.
+     * Throws 400 if role is invalid or player not found.
+     * Throws 409 if the team already has a spymaster.
+     */
     @PutMapping("/{id}/role/{playerId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void changePlayerRole(@PathVariable Long id, @PathVariable Long playerId, @RequestBody RoleUpdateDTO roleUpdate) {
