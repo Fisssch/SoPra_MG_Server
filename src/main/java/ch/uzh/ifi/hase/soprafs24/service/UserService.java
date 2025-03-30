@@ -5,13 +5,12 @@ import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,27 +29,103 @@ public class UserService {
 
   private final UserRepository userRepository;
 
-  @Autowired
-  public UserService(@Qualifier("userRepository") UserRepository userRepository) {
+  public UserService(UserRepository userRepository) {
     this.userRepository = userRepository;
   }
 
+  //get users  
   public List<User> getUsers() {
     return this.userRepository.findAll();
   }
 
+  //get user
+  public User getUserById(Long id){
+    return userRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found")); 
+    
+  }
+
+  //register 
   public User createUser(User newUser) {
     newUser.setToken(UUID.randomUUID().toString());
-    newUser.setOnlineStatus(UserStatus.OFFLINE);
+    newUser.setOnlineStatus(UserStatus.ONLINE);
+    newUser.setCreationDate(LocalDateTime.now());
+    newUser.setWins(0);
+    newUser.setLosses(0);
+    newUser.setBlackCardGuesses(0);
     checkIfUserExists(newUser);
-    // saves the given entity but data is only persisted in the database once
-    // flush() is called
     newUser = userRepository.save(newUser);
-    userRepository.flush();
 
     log.debug("Created Information for User: {}", newUser);
     return newUser;
   }
+
+  //login
+  public User loginUser(String username, String password) {
+    User existingUser = userRepository.findByUsername(username); 
+    if (existingUser == null){
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "This username does not exist"); 
+    }
+    if (!existingUser.getPassword().equals(password)){
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Incorrect password"); 
+    }
+
+    existingUser.setToken(UUID.randomUUID().toString());
+    existingUser.setOnlineStatus(UserStatus.ONLINE);
+    userRepository.save(existingUser);
+    return existingUser;
+  }
+
+  //logout 
+  public void logoutUser(String token) {
+    User user = validateToken(token); 
+    user.setOnlineStatus(UserStatus.OFFLINE);
+    user.setToken(null);
+    userRepository.save(user);
+  }
+
+  //update username 
+  public void updateUsername(Long id, String newUsername, String token){
+    User user = validateToken(token); 
+
+    if (!user.getId().equals(id)) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only update your own profile.");
+  }
+
+  if (newUsername == null || newUsername.trim().isEmpty()){
+    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username can't be empty");
+  }
+
+  User existingUser = userRepository.findByUsername(newUsername);
+    if (existingUser != null && !existingUser.getId().equals(id)) {
+        throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already taken.");
+    }
+
+  user.setUsername(newUsername);
+  userRepository.save(user); 
+  }
+
+  //update password 
+  public void updatePassword(Long id, String oldPassword, String newPassword, String token) {
+    User user = validateToken(token);
+
+    if (!user.getId().equals(id)) {
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "You can only update your own profile.");
+    }
+
+    if (newPassword == null || newPassword.trim().isEmpty()) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "New password cannot be empty.");
+    }
+
+    if (!user.getPassword().equals(oldPassword)) {
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Old password is incorrect."); 
+    }
+
+    user.setPassword(newPassword);
+    userRepository.save(user);
+}
+
+
+  //////////////////// helper methods: ////////////////////
 
   /**
    * This is a helper method that will check the uniqueness criteria of the
@@ -63,17 +138,36 @@ public class UserService {
    * @see User
    */
   private void checkIfUserExists(User userToBeCreated) {
-    User userByUsername = userRepository.findByUsername(userToBeCreated.getUsername());
-    User userByName = userRepository.findByName(userToBeCreated.getName());
-
-    String baseErrorMessage = "The %s provided %s not unique. Therefore, the user could not be created!";
-    if (userByUsername != null && userByName != null) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-          String.format(baseErrorMessage, "username and the name", "are"));
-    } else if (userByUsername != null) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format(baseErrorMessage, "username", "is"));
-    } else if (userByName != null) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format(baseErrorMessage, "name", "is"));
+    String username = userToBeCreated.getUsername(); 
+    if (username == null || username.isBlank()) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username can't be null or blank!"); 
     }
+    
+    User userByUsername = userRepository.findByUsername(userToBeCreated.getUsername());
+    if (userByUsername != null) {
+      String errorMessage = String.format(
+          "The username '%s' is already taken. User could not be created!",
+          userToBeCreated.getUsername()
+      );
+      throw new ResponseStatusException(HttpStatus.CONFLICT,errorMessage);
+    } 
+  }
+
+  public User validateToken(String token){
+    if (token == null || token.isEmpty()){
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing authentification");
+    }
+    User user = userRepository.findByToken(token); 
+    if (user == null){
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+    }
+    return user;
+  }
+
+  public String extractToken(String header){
+    if (header == null){
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing header");
+    }
+    return header.substring(7);
   }
 }

@@ -18,17 +18,7 @@ public class Player extends DatabaseEntity {
     private PlayerRole role; // "spymaster" oder "field operative"
 
     private Boolean ready;
-    /**
-     * Setter nur für Testzwecke.
-     * In der Anwendung wird die ID automatisch generiert.
-     */
-    public void setId(Long id) {
-        this.setId(id);
-    }
 
-    public Long getId() {
-        return this.getId();
-    }
     public Team getTeam() {
         return team;
     }
@@ -37,11 +27,11 @@ public class Player extends DatabaseEntity {
         this.team = team;
     }
 
-    public PlayerRole getRole() {
+    public String getRole() {
         return role;
     }
 
-    public void setRole(PlayerRole role) {
+    public void setRole(String role) {
         this.role = role;
     }
     public Boolean getReady() {

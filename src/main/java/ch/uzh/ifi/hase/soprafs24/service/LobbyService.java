@@ -5,7 +5,7 @@ import ch.uzh.ifi.hase.soprafs24.repository.LobbyRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
-import java.util.Comparator;
+import ch.uzh.ifi.hase.soprafs24.constant.PlayerRole;
 
 @Service
 public class LobbyService {
@@ -36,10 +36,10 @@ public class LobbyService {
         player.setTeam(assignedTeam);
 
         if (assignedTeam.getSpymaster() == null) {
-            player.setRole("spymaster");
+            player.setRole(PlayerRole.SPYMASTER);
             assignedTeam.setSpymaster(player);
         } else {
-            player.setRole("field operative");
+            player.setRole(PlayerRole.FIELD_OPERATIVE);
         }
 
         lobby.addPlayer(player);
@@ -100,8 +100,7 @@ public class LobbyService {
 
         Player player = lobby.getPlayers().stream()
                 .filter(p -> playerId.equals(p.getId()))
-                .findFirst()
-                .orElse(null);
+                .findFirst().orElse(null);
 
         if (player == null) return false;
 
@@ -128,6 +127,7 @@ public class LobbyService {
         lobbyRepository.save(lobby);
         return true;
     }
+
     public Boolean getPlayerReadyStatus(Long lobbyId, Long playerId) {
         Lobby lobby = getLobbyById(lobbyId);
         if (lobby == null) return null;
