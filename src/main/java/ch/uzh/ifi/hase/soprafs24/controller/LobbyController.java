@@ -4,7 +4,9 @@ import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
 import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs24.entity.Player;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.*;
+import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs24.service.LobbyService;
+import ch.uzh.ifi.hase.soprafs24.service.WebsocketService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -15,10 +17,12 @@ import org.springframework.web.server.ResponseStatusException;
 public class LobbyController {
 
     private final LobbyService lobbyService;
+    private final WebsocketService webSocketService;
 
     @Autowired
-    public LobbyController(LobbyService lobbyService) {
+    public LobbyController(LobbyService lobbyService, WebsocketService webSocketService) {
         this.lobbyService = lobbyService;
+        this.webSocketService = webSocketService;
     }
 
     @PostMapping
@@ -34,8 +38,8 @@ public class LobbyController {
         Lobby lobby = lobbyService.createLobby(lobbyPostDTO.getLobbyName(), mode);
 
         return new LobbyResponseDTO(
-                lobby.getLobbyID(),
-                lobby.getLobbyName(), // <-- dieser war bisher nicht drin
+                lobby.getId(),
+                lobby.getLobbyName(),
                 lobby.getGameMode().name()
         );
     }
@@ -53,7 +57,7 @@ public class LobbyController {
 
         PlayerResponseDTO response = new PlayerResponseDTO();
         response.setId(addedPlayer.getId());
-        response.setRole(addedPlayer.getRole());
+        response.setRole(addedPlayer.getRole() != null ? addedPlayer.getRole().name() : null);
         response.setReady(addedPlayer.getReady());
         if (addedPlayer.getTeam() != null) {
             response.setTeamColor(addedPlayer.getTeam().getColor());
@@ -73,7 +77,7 @@ public class LobbyController {
                 .findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found"));
 
-        return new PlayerRoleDTO(player.getRole());
+        return new PlayerRoleDTO(player.getRole() != null ? player.getRole().name() : null);
     }
 
     @PutMapping("/{id}/role/{playerId}")
@@ -132,5 +136,19 @@ public class LobbyController {
         if (!updated) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby or player not found");
         }
+    }
+
+    // ⚠️ NEU: Aus `main` übernommen
+    @GetMapping("/lobby")
+    @ResponseStatus(HttpStatus.CREATED)
+    public GetLobbyDTO getOrCreateLobby() {
+        return DTOMapper.INSTANCE.convertEntitytoGetLobbyDTO(lobbyService.getOrCreateLobby());
+    }
+
+    @PutMapping("/lobby/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void updateGameMode(@PathVariable Integer id, @RequestBody GameMode gameMode) {
+        var lobby = lobbyService.setGameMode(id, gameMode);
+        webSocketService.sendMessage("/topic/lobby", DTOMapper.INSTANCE.convertEntityToLobbyDTO(lobby));
     }
 }

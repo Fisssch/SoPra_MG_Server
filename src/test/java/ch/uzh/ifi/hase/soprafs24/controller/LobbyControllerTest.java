@@ -1,6 +1,7 @@
 package ch.uzh.ifi.hase.soprafs24.controller;
 
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
+import ch.uzh.ifi.hase.soprafs24.constant.PlayerRole;
 import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs24.entity.Player;
 import ch.uzh.ifi.hase.soprafs24.entity.Team;
@@ -35,7 +36,7 @@ public class LobbyControllerTest {
         public void addPlayerToLobby_returnsPlayerWithTeamAndRole() throws Exception {
             Player mockPlayer = new Player();
             mockPlayer.setId(1L);
-            mockPlayer.setRole("spymaster");
+            mockPlayer.setRole(PlayerRole.valueOf("spymaster"));
 
             when(lobbyService.addPlayerToLobby(eq(1L), any(Player.class))).thenReturn(mockPlayer);
 
@@ -53,7 +54,7 @@ public class LobbyControllerTest {
         public void getPlayerRole_returnsRoleDTO() throws Exception {
             Player mockPlayer = new Player();
             mockPlayer.setId(1L);
-            mockPlayer.setRole("spymaster");
+            mockPlayer.setRole(PlayerRole.valueOf("spymaster"));
 
             Lobby mockLobby = new Lobby();
             mockLobby.addPlayer(mockPlayer);
@@ -195,7 +196,7 @@ public class LobbyControllerTest {
         @Test
         public void createLobby_returnsLobbyResponseDTO() throws Exception {
             Lobby mockLobby = new Lobby();
-            mockLobby.setLobbyID(42L);
+            mockLobby.setId(String.valueOf(42L));
             mockLobby.setGameMode(GameMode.CLASSIC);
             mockLobby.setLobbyName("TestLobby");
 

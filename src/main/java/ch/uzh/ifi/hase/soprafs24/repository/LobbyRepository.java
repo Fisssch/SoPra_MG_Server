@@ -1,10 +1,10 @@
 package ch.uzh.ifi.hase.soprafs24.repository;
 
-import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
+import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
 
 @Repository
-public interface LobbyRepository extends JpaRepository<Lobby, Long> {
+public interface LobbyRepository extends MongoRepository<Lobby, String> {
     Lobby findByLobbyCode(Integer lobbyCode);
 }

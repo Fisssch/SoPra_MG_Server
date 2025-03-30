@@ -1,28 +1,43 @@
 package ch.uzh.ifi.hase.soprafs24.service;
 
+import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
+import ch.uzh.ifi.hase.soprafs24.constant.PlayerRole;
 import ch.uzh.ifi.hase.soprafs24.entity.*;
 import ch.uzh.ifi.hase.soprafs24.repository.LobbyRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
+
 import java.util.Comparator;
 
 @Service
 public class LobbyService {
 
+    private final Logger log = LoggerFactory.getLogger(LobbyService.class);
     private final LobbyRepository lobbyRepository;
 
-    @Autowired
     public LobbyService(LobbyRepository lobbyRepository) {
         this.lobbyRepository = lobbyRepository;
     }
 
     public Lobby getLobbyById(Long id) {
-        return lobbyRepository.findById(id).orElse(null);
+        return lobbyRepository.findById(String.valueOf(id)).orElse(null);
+    }
+
+    public Lobby getOrCreateLobby() {
+        return new Lobby(); // TODO: ggf. mit Session arbeiten
+    }
+
+    public Lobby setGameMode(Integer id, GameMode gameMode) {
+        Lobby lobby = new Lobby(); // TODO: tatsächliche Lobby per ID holen
+        lobby.setGameMode(gameMode);
+        // TODO: Lobby speichern, evtl. WebSocket-Benachrichtigung senden
+        return lobby;
     }
 
     public Player addPlayerToLobby(Long lobbyId, Player player) {
         Lobby lobby = getLobbyById(lobbyId);
+        if (lobby == null) return null;
 
         long redCount = lobby.getPlayers().stream()
                 .filter(p -> "red".equals(p.getTeam().getColor()))
@@ -36,10 +51,10 @@ public class LobbyService {
         player.setTeam(assignedTeam);
 
         if (assignedTeam.getSpymaster() == null) {
-            player.setRole("spymaster");
+            player.setRole(PlayerRole.valueOf("spymaster"));
             assignedTeam.setSpymaster(player);
         } else {
-            player.setRole("field operative");
+            player.setRole(PlayerRole.valueOf("field operative"));
         }
 
         lobby.addPlayer(player);
@@ -65,7 +80,7 @@ public class LobbyService {
     }
 
     private int generateLobbyCode() {
-        return (int)(Math.random() * 9000) + 1000;
+        return (int) (Math.random() * 9000) + 1000;
     }
 
     public void saveLobby(Lobby lobby) {
@@ -105,7 +120,7 @@ public class LobbyService {
         if (player == null) return false;
 
         if ("spymaster".equalsIgnoreCase(role) || "field operative".equalsIgnoreCase(role)) {
-            player.setRole(role);
+            player.setRole(PlayerRole.valueOf(role));
         } else {
             return false;
         }
@@ -145,6 +160,7 @@ public class LobbyService {
         lobbyRepository.save(lobby);
         return true;
     }
+
     public boolean shouldStartGame(Lobby lobby) {
         return lobby.getPlayers().size() >= 4 &&
                 lobby.getPlayers().stream().allMatch(p -> Boolean.TRUE.equals(p.getReady()));

@@ -1,47 +1,34 @@
 package ch.uzh.ifi.hase.soprafs24.entity;
+
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
-import javax.persistence.*;
-import java.io.Serializable;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.util.ArrayList;
 import java.util.List;
 
-@Entity
-@Table(name = "LOBBY")
-public class Lobby implements Serializable {
-
-    private static final long serialVersionUID = 1L;
+@Document(collection = "LOBBY")
+public class Lobby {
 
     @Id
-    @GeneratedValue
-    private Long lobbyID;
+    private String id;
 
-    @Column(nullable = false)
     private String lobbyName;
-
-    @Enumerated(EnumType.STRING)
     private GameMode gameMode;
-
-    @OneToMany(cascade = CascadeType.ALL)
     private List<Player> players = new ArrayList<>();
-
-    @Column(unique = true)
     private Integer lobbyCode;
-    @OneToOne(cascade = CascadeType.ALL)
     private Team redTeam;
-
-    @OneToOne(cascade = CascadeType.ALL)
     private Team blueTeam;
-    @Column(nullable = false)
     private boolean gameStarted = false;
 
     // --- Getter & Setter ---
 
-    public Long getLobbyID() {
-        return lobbyID;
+    public String getId() {
+        return id;
     }
 
-    public void setLobbyID(Long lobbyID) {
-        this.lobbyID = lobbyID;
+    public void setId(String id) {
+        this.id = id;
     }
 
     public String getLobbyName() {
@@ -79,6 +66,7 @@ public class Lobby implements Serializable {
     public void setLobbyCode(Integer lobbyCode) {
         this.lobbyCode = lobbyCode;
     }
+
     public Team getRedTeam() {
         return redTeam;
     }
