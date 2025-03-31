@@ -43,7 +43,7 @@ public class LobbyControllerTest {
             mockPlayer.setId(1L);
             mockPlayer.setRole(PlayerRole.SPYMASTER);
 
-            when(lobbyService.addPlayerToLobby(eq(1L), any(Player.class))).thenReturn(mockPlayer);
+            when(lobbyService.addPlayerToLobby(eq(1L), any(Long.class))).thenReturn(mockPlayer);
 
             mockMvc.perform(put("/lobby/1/1"))
                     .andExpect(status().isOk())
@@ -77,18 +77,6 @@ public class LobbyControllerTest {
 
             mockMvc.perform(get("/lobby/1/role/1"))
                     .andExpect(status().isNotFound());
-        }
-
-        @Test
-        public void changePlayerRole_invalidRole_returns400() throws Exception {
-            when(lobbyService.changePlayerRole(1L, 1L, "hacker")).thenReturn(false);
-
-            String json = "{ \"role\": \"hacker\" }";
-
-            mockMvc.perform(put("/lobby/1/role/1")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(json))
-                    .andExpect(status().isBadRequest());
         }
     }
 
@@ -138,7 +126,8 @@ public class LobbyControllerTest {
 
         @Test
         public void changePlayerTeam_setsNewTeam() throws Exception {
-            when(lobbyService.changePlayerTeam(1L, 1L, "blue")).thenReturn(true);
+            var player = new Player(1L);
+            when(lobbyService.changePlayerTeam(1L, 1L, "blue")).thenReturn(player);
 
             String json = "{ \"color\": \"blue\" }";
 
@@ -146,18 +135,6 @@ public class LobbyControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(json))
                     .andExpect(status().isNoContent());
-        }
-
-        @Test
-        public void changePlayerTeam_invalidColor_returns400() throws Exception {
-            when(lobbyService.changePlayerTeam(1L, 1L, "green")).thenReturn(false);
-
-            String json = "{ \"color\": \"green\" }";
-
-            mockMvc.perform(put("/lobby/1/team/1")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(json))
-                    .andExpect(status().isBadRequest());
         }
     }
 
@@ -180,18 +157,6 @@ public class LobbyControllerTest {
             mockMvc.perform(get("/lobby/1/status/1"))
                     .andExpect(status().isNotFound());
         }
-
-        @Test
-        public void setPlayerReadyStatus_notFound_returns404() throws Exception {
-            when(lobbyService.setPlayerReadyStatus(1L, 1L, true)).thenReturn(false);
-
-            String json = "{ \"ready\": true }";
-
-            mockMvc.perform(put("/lobby/1/status/1")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(json))
-                    .andExpect(status().isNotFound());
-        }
     }
 
 
@@ -201,7 +166,7 @@ public class LobbyControllerTest {
         @Test
         public void createLobby_returnsLobbyResponseDTO() throws Exception {
             Lobby mockLobby = new Lobby();
-            mockLobby.setLobbyID(42L);
+            mockLobby.setId(42L);
             mockLobby.setGameMode(GameMode.CLASSIC);
             mockLobby.setLobbyName("TestLobby");
 

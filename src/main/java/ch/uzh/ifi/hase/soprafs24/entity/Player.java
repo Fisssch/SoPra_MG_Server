@@ -18,6 +18,13 @@ public class Player extends DatabaseEntity {
     private PlayerRole role;
     private Boolean ready;
     
+    public Player() {
+    }
+
+    public Player(Long id) {
+        this.setId(id);
+    }
+
     public Team getTeam() {
         return team;
     }

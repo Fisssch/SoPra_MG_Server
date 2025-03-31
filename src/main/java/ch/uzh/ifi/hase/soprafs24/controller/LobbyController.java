@@ -4,8 +4,11 @@ import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
 import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs24.entity.Player;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.*;
+import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs24.service.LobbyService;
 import ch.uzh.ifi.hase.soprafs24.service.WebsocketService;
+import ch.uzh.ifi.hase.soprafs24.websocket.dto.PlayerUpdateDTO;
+import ch.uzh.ifi.hase.soprafs24.websocket.dto.RemovePlayerDTO;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -17,7 +20,7 @@ public class LobbyController {
 
     private final LobbyService lobbyService;
     private final WebsocketService webSocketService;
-  
+
     LobbyController(LobbyService lobbyService, WebsocketService webSocketService) {
         this.lobbyService = lobbyService;
         this.webSocketService = webSocketService;
@@ -36,8 +39,8 @@ public class LobbyController {
         Lobby lobby = lobbyService.createLobby(lobbyPostDTO.getLobbyName(), mode);
 
         return new LobbyResponseDTO(
-                lobby.getLobbyID(),
-                lobby.getLobbyName(), // <-- dieser war bisher nicht drin
+                lobby.getId(),
+                lobby.getLobbyName(),
                 lobby.getGameMode().name()
         );
     }
@@ -45,9 +48,7 @@ public class LobbyController {
     @PutMapping("/{id}/{playerId}")
     @ResponseStatus(HttpStatus.OK)
     public PlayerResponseDTO addPlayerToLobby(@PathVariable Long id, @PathVariable Long playerId) {
-        Player player = new Player();
-        player.setId(playerId);
-        Player addedPlayer = lobbyService.addPlayerToLobby(id, player);
+        Player addedPlayer = lobbyService.addPlayerToLobby(id, playerId);
 
         if (addedPlayer == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby or player not found");
@@ -55,13 +56,27 @@ public class LobbyController {
 
         PlayerResponseDTO response = new PlayerResponseDTO();
         response.setId(addedPlayer.getId());
-        response.setRole(addedPlayer.getRole().name());
+        response.setRole(addedPlayer.getRole() != null ? addedPlayer.getRole().name() : null);
         response.setReady(addedPlayer.getReady());
         if (addedPlayer.getTeam() != null) {
             response.setTeamColor(addedPlayer.getTeam().getColor());
         }
 
+        PlayerUpdateDTO updateDto = DTOMapper.INSTANCE.convertEntityToPlayerUpdateDTO(addedPlayer);
+        updateDto.setColor(addedPlayer.getTeam() != null ? addedPlayer.getTeam().getColor() : null);
+        updateDto.setRole(addedPlayer.getRole() != null ? addedPlayer.getRole().name() : null);
+
+        webSocketService.sendMessage("/topic/lobby" + id + "/addPlayer", updateDto);
+
         return response;
+    }
+
+    @DeleteMapping("/{id}/{playerId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removePlayerFromLobby(@PathVariable Long id, @PathVariable Long playerId) {   
+        lobbyService.removePlayerFromLobby(id, playerId);
+
+        webSocketService.sendMessage("/topic/lobby" + id + "/removePlayer", new RemovePlayerDTO(playerId));
     }
 
     @GetMapping("/{id}/role/{playerId}")
@@ -75,7 +90,8 @@ public class LobbyController {
                 .findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found"));
 
-        return new PlayerRoleDTO(player.getRole().name());
+
+                return new PlayerRoleDTO(player.getRole() != null ? player.getRole().name() : null);
     }
 
     /**
@@ -86,10 +102,14 @@ public class LobbyController {
     @PutMapping("/{id}/role/{playerId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void changePlayerRole(@PathVariable Long id, @PathVariable Long playerId, @RequestBody RoleUpdateDTO roleUpdate) {
-        boolean changed = lobbyService.changePlayerRole(id, playerId, roleUpdate.getRole());
-        if (!changed) {
+        Player updatedPlayer = lobbyService.changePlayerRole(id, playerId, roleUpdate.getRole());
+        if (updatedPlayer == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid role or player not found");
         }
+        PlayerUpdateDTO playerUpdateDTO = DTOMapper.INSTANCE.convertEntityToPlayerUpdateDTO(updatedPlayer);
+        playerUpdateDTO.setColor(updatedPlayer.getTeam() != null ? updatedPlayer.getTeam().getColor() : null);
+        playerUpdateDTO.setRole(updatedPlayer.getRole() != null ? updatedPlayer.getRole().name() : null);
+        webSocketService.sendMessage("/topic/lobby" + id + "/players", playerUpdateDTO);
     }
 
     @GetMapping("/{id}/team/{playerId}")
@@ -113,10 +133,14 @@ public class LobbyController {
     @PutMapping("/{id}/team/{playerId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void changePlayerTeam(@PathVariable Long id, @PathVariable Long playerId, @RequestBody TeamUpdateDTO teamUpdate) {
-        boolean changed = lobbyService.changePlayerTeam(id, playerId, teamUpdate.getColor());
-        if (!changed) {
+        Player updatedPlayer = lobbyService.changePlayerTeam(id, playerId, teamUpdate.getColor());
+        if (updatedPlayer == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid team color or player not found");
         }
+        PlayerUpdateDTO playerUpdateDTO = DTOMapper.INSTANCE.convertEntityToPlayerUpdateDTO(updatedPlayer);
+        playerUpdateDTO.setColor(updatedPlayer.getTeam() != null ? updatedPlayer.getTeam().getColor() : null);
+        playerUpdateDTO.setRole(updatedPlayer.getRole() != null ? updatedPlayer.getRole().name() : null);
+        webSocketService.sendMessage("/topic/lobby" + id + "/players", playerUpdateDTO);
     }
 
     @GetMapping("/{id}/status/{playerId}")
@@ -135,9 +159,26 @@ public class LobbyController {
     @PutMapping("/{id}/status/{playerId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void setPlayerReadyStatus(@PathVariable Long id, @PathVariable Long playerId, @RequestBody ReadyStatusDTO statusUpdate) {
-        boolean updated = lobbyService.setPlayerReadyStatus(id, playerId, statusUpdate.getReady());
-        if (!updated) {
+        Player updatedPlayer = lobbyService.setPlayerReadyStatus(id, playerId, statusUpdate.getReady(), webSocketService);
+        if (updatedPlayer == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby or player not found");
         }
+        PlayerUpdateDTO playerUpdateDTO = DTOMapper.INSTANCE.convertEntityToPlayerUpdateDTO(updatedPlayer);
+        playerUpdateDTO.setColor(updatedPlayer.getTeam() != null ? updatedPlayer.getTeam().getColor() : null);
+        playerUpdateDTO.setRole(updatedPlayer.getRole() != null ? updatedPlayer.getRole().name() : null);
+        webSocketService.sendMessage("/topic/lobby" + id + "/players", playerUpdateDTO);
+    }
+
+    @GetMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public GetLobbyDTO getOrCreateLobby() {
+        return DTOMapper.INSTANCE.convertEntitytoGetLobbyDTO(lobbyService.getOrCreateLobby());
+    }
+
+    @PutMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void updateGameMode(@PathVariable Long id, @RequestBody GameMode gameMode) {
+        var lobby = lobbyService.setGameMode(id, gameMode);
+        webSocketService.sendMessage("/topic/lobby" + id + "/gameMode", DTOMapper.INSTANCE.convertEntityToLobbyDTO(lobby));
     }
 }

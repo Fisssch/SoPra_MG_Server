@@ -1,27 +1,34 @@
 package ch.uzh.ifi.hase.soprafs24.service;
 
-import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
-import ch.uzh.ifi.hase.soprafs24.constant.PlayerRole;
+import ch.uzh.ifi.hase.soprafs24.constant.*;
 import ch.uzh.ifi.hase.soprafs24.entity.*;
-import ch.uzh.ifi.hase.soprafs24.repository.LobbyRepository;
+import ch.uzh.ifi.hase.soprafs24.repository.*;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.http.MediaType;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 public class LobbyServiceTest {
 
     private LobbyService lobbyService;
     private LobbyRepository lobbyRepository;
+    private PlayerRepository playerRepository;
+    private WebsocketService websocketService;
 
     @BeforeEach
     public void setup() {
         lobbyRepository = Mockito.mock(LobbyRepository.class);
-        lobbyService = new LobbyService(lobbyRepository);
+        playerRepository = Mockito.mock(PlayerRepository.class);
+        websocketService = Mockito.mock(WebsocketService.class);
+        lobbyService = new LobbyService(lobbyRepository, playerRepository);
 
         // Wenn save() aufgerufen wird, gib die Lobby direkt zurück
         when(lobbyRepository.save(any(Lobby.class)))
@@ -39,9 +46,7 @@ public class LobbyServiceTest {
 
             // Spieler hinzufügen
             for (long i = 1; i <= count; i++) {
-                Player player = new Player();
-                player.setId(i);
-                lobbyService.addPlayerToLobby(1L, player);
+                lobbyService.addPlayerToLobby(1L, i);
             }
 
             // Spieler pro Team zählen
@@ -65,17 +70,11 @@ public class LobbyServiceTest {
         Lobby lobby = lobbyService.createLobby("TestLobby", GameMode.OWN_WORDS);
         when(lobbyRepository.findById(any())).thenReturn(Optional.of(lobby));
 
-        // Vier Spieler erzeugen
-        Player player1 = new Player(); player1.setId(1L);
-        Player player2 = new Player(); player2.setId(2L);
-        Player player3 = new Player(); player3.setId(3L);
-        Player player4 = new Player(); player4.setId(4L);
-
         // Spieler der Lobby hinzufügen (Service übernimmt Team- und Rollenlogik)
-        lobbyService.addPlayerToLobby(1L, player1);
-        lobbyService.addPlayerToLobby(1L, player2);
-        lobbyService.addPlayerToLobby(1L, player3);
-        lobbyService.addPlayerToLobby(1L, player4);
+        lobbyService.addPlayerToLobby(1L, 1L);
+        lobbyService.addPlayerToLobby(1L, 2L);
+        lobbyService.addPlayerToLobby(1L, 3L);
+        lobbyService.addPlayerToLobby(1L, 4L);
 
         // Spymaster-Zählung pro Team
         long redSpymasters = lobby.getPlayers().stream()
@@ -88,8 +87,63 @@ public class LobbyServiceTest {
                 .filter(p -> PlayerRole.SPYMASTER.equals(p.getRole()))
                 .count();
 
-        // ✅ Tests
         assertEquals(1, redSpymasters, "Red team should have exactly one spymaster");
         assertEquals(1, blueSpymasters, "Blue team should have exactly one spymaster");
+    }
+    @Test
+    public void shouldStartGame_returnsTrue_whenAllPlayersReadyAndAtLeastFour() {
+        Lobby lobby = new Lobby();
+
+        for (int i = 0; i < 4; i++) {
+            Player p = new Player();
+            p.setReady(true);
+            lobby.addPlayer(p);
+        }
+
+        boolean result = lobbyService.shouldStartGame(lobby);
+        assertTrue(result, "Game should start when 4+ players are all ready");
+    }
+
+    @Test
+    public void shouldStartGame_returnsFalse_whenNotAllPlayersReady() {
+        Lobby lobby = new Lobby();
+
+        for (int i = 0; i < 4; i++) {
+            Player p = new Player();
+            p.setReady(i < 3); // letzter Spieler ist nicht bereit
+            lobby.addPlayer(p);
+        }
+
+        boolean result = lobbyService.shouldStartGame(lobby);
+        assertFalse(result, "Game should not start if not all players are ready");
+    }
+
+    @Test
+    public void shouldStartGame_returnsFalse_whenLessThanFourPlayers() {
+        Lobby lobby = new Lobby();
+
+        for (int i = 0; i < 3; i++) {
+            Player p = new Player();
+            p.setReady(true);
+            lobby.addPlayer(p);
+        }
+
+        boolean result = lobbyService.shouldStartGame(lobby);
+        assertFalse(result, "Game should not start with less than 4 players");
+    }
+
+    @Test
+    public void setPlayerReadyStatus_notFound_throwsError() {
+        assertThrows(ResponseStatusException.class, () -> lobbyService.setPlayerReadyStatus(1L, 1L, true, websocketService));
+    }
+
+    @Test
+    public void changePlayerRole_invalidRole_throwsError() {
+        assertThrows(ResponseStatusException.class, () -> lobbyService.changePlayerRole(1L, 1L, "hacker"));
+    }
+
+    @Test
+    public void changePlayerTeam_invalidColor_returns400() throws Exception {
+        assertThrows(ResponseStatusException.class, () -> lobbyService.changePlayerTeam(1L, 1L, "green"));
     }
 }
