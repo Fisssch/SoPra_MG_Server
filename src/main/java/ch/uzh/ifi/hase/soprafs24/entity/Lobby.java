@@ -1,34 +1,40 @@
 package ch.uzh.ifi.hase.soprafs24.entity;
 
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@Document(collection = "LOBBY")
-public class Lobby {
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-    @Id
-    private String id;
+@Document(collection = "LOBBY")
+public class Lobby extends DatabaseEntity {
+
+    private static final long serialVersionUID = 1L;
 
     private String lobbyName;
-    private GameMode gameMode;
-    private List<Player> players = new ArrayList<>();
-    private Integer lobbyCode;
-    private Team redTeam;
-    private Team blueTeam;
-    private boolean gameStarted = false;
 
+    private GameMode gameMode;
+
+    private List<Player> players = new ArrayList<>();
+
+    @Indexed(unique = true)
+    private Integer lobbyCode;
+    
+    private Team redTeam;
+
+    private Team blueTeam;
+    
+    private boolean gameStarted = false;
     // --- Getter & Setter ---
 
-    public String getId() {
-        return id;
+    public Long getLobbyID() {
+        return getId();
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public void setLobbyID(Long lobbyID) {
+        setId(lobbyID);
     }
 
     public String getLobbyName() {
@@ -44,7 +50,8 @@ public class Lobby {
     }
 
     public void setGameMode(GameMode gameMode) {
-        this.gameMode = gameMode;
+        if (gameMode != null)
+            this.gameMode = gameMode;
     }
 
     public List<Player> getPlayers() {
@@ -56,7 +63,19 @@ public class Lobby {
     }
 
     public void addPlayer(Player player) {
+        if (this.players == null) {
+            this.players = new ArrayList<>();
+        }
         this.players.add(player);
+    }
+
+    public void removePlayer(Player player) {
+        if (this.players == null) {
+            this.players = new ArrayList<>();
+        }
+        if (this.players.contains(player)) {
+            this.players.remove(player);
+        }
     }
 
     public Integer getLobbyCode() {

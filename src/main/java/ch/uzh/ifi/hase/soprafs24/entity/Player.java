@@ -6,6 +6,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import ch.uzh.ifi.hase.soprafs24.constant.PlayerRole;
 
+
 @Document(collection = "PLAYER")
 public class Player extends DatabaseEntity {
 
@@ -14,21 +15,16 @@ public class Player extends DatabaseEntity {
     @DBRef(lazy = true)
     private Team team;
 
-    @DBRef(lazy = true)
-    private PlayerRole role; // "spymaster" oder "field operative"
-
+    private PlayerRole role;
     private Boolean ready;
-    /**
-     * Setter nur für Testzwecke.
-     * In der Anwendung wird die ID automatisch generiert.
-     */
-    public void setId(Long id) {
+    
+    public Player() {
+    }
+
+    public Player(Long id) {
         this.setId(id);
     }
 
-    public Long getId() {
-        return this.getId();
-    }
     public Team getTeam() {
         return team;
     }

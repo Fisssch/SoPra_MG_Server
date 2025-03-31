@@ -1,41 +1,53 @@
 package ch.uzh.ifi.hase.soprafs24.service;
 
-import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
-import ch.uzh.ifi.hase.soprafs24.constant.PlayerRole;
-import ch.uzh.ifi.hase.soprafs24.entity.*;
-import ch.uzh.ifi.hase.soprafs24.repository.LobbyRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.util.Comparator;
+import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
+import ch.uzh.ifi.hase.soprafs24.constant.PlayerRole;
+import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
+import ch.uzh.ifi.hase.soprafs24.entity.Player;
+import ch.uzh.ifi.hase.soprafs24.entity.Team;
+import ch.uzh.ifi.hase.soprafs24.repository.*;
 
 @Service
+@Transactional
 public class LobbyService {
 
     private final Logger log = LoggerFactory.getLogger(LobbyService.class);
     private final LobbyRepository lobbyRepository;
+    private final PlayerRepository playerRepository;
 
-    public LobbyService(LobbyRepository lobbyRepository) {
+    public LobbyService(LobbyRepository lobbyRepository, PlayerRepository playerRepository) {
+        this.playerRepository = playerRepository;
         this.lobbyRepository = lobbyRepository;
     }
 
     public Lobby getLobbyById(Long id) {
-        return lobbyRepository.findById(String.valueOf(id)).orElse(null);
+        return lobbyRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found with id: " + id));
     }
 
     public Lobby getOrCreateLobby() {
-        return new Lobby(); // TODO: ggf. mit Session arbeiten
-    }
-
-    public Lobby setGameMode(Integer id, GameMode gameMode) {
-        Lobby lobby = new Lobby(); // TODO: tatsächliche Lobby per ID holen
-        lobby.setGameMode(gameMode);
-        // TODO: Lobby speichern, evtl. WebSocket-Benachrichtigung senden
+        Lobby lobby = lobbyRepository.findAll().stream().findFirst().orElse(null); // TODO: Change to findByLobbyCode if needed
+        if (lobby == null) {
+            return createLobby("Active lobby", GameMode.CLASSIC);
+        }
         return lobby;
     }
 
-    public Player addPlayerToLobby(Long lobbyId, Player player) {
+    public Lobby setGameMode(Long id, GameMode gameMode) {
+        Lobby lobby = getLobbyById(id);
+        lobby.setGameMode(gameMode);
+        lobbyRepository.save(lobby);
+        return lobby;
+    }
+
+    public Player addPlayerToLobby(Long lobbyId, Long playerId) {
+        Player player = playerRepository.findById(playerId).orElse(new Player(playerId));
         Lobby lobby = getLobbyById(lobbyId);
         if (lobby == null) return null;
 
@@ -51,15 +63,25 @@ public class LobbyService {
         player.setTeam(assignedTeam);
 
         if (assignedTeam.getSpymaster() == null) {
-            player.setRole(PlayerRole.valueOf("spymaster"));
+            player.setRole(PlayerRole.SPYMASTER);
             assignedTeam.setSpymaster(player);
         } else {
-            player.setRole(PlayerRole.valueOf("field operative"));
+            player.setRole(PlayerRole.FIELD_OPERATIVE);
         }
 
         lobby.addPlayer(player);
         lobbyRepository.save(lobby);
+        playerRepository.save(player);
         return player;
+    }
+
+    public void removePlayerFromLobby(Long lobbyId, Long playerId) {
+        Player player = playerRepository.findById(playerId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found with id: " + playerId));
+        Lobby lobby = getLobbyById(lobbyId);
+
+        lobby.removePlayer(player);
+        playerRepository.delete(player);
+        lobbyRepository.save(lobby);
     }
 
     public Lobby createLobby(String lobbyName, GameMode gameMode) {
@@ -83,82 +105,61 @@ public class LobbyService {
         return (int) (Math.random() * 9000) + 1000;
     }
 
-    public void saveLobby(Lobby lobby) {
-        lobbyRepository.save(lobby);
-    }
-
-    public boolean changePlayerTeam(Long lobbyId, Long playerId, String color) {
+    public Player changePlayerTeam(Long lobbyId, Long playerId, String color) {
         Lobby lobby = getLobbyById(lobbyId);
-        if (lobby == null) return false;
 
-        Player player = lobby.getPlayers().stream()
-                .filter(p -> playerId.equals(p.getId()))
-                .findFirst().orElse(null);
-
-        if (player == null) return false;
+        Player player = playerRepository.findById(playerId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found with id: " + playerId));
 
         if ("red".equalsIgnoreCase(color)) {
             player.setTeam(lobby.getRedTeam());
         } else if ("blue".equalsIgnoreCase(color)) {
             player.setTeam(lobby.getBlueTeam());
         } else {
-            return false;
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid team color: " + color);
         }
 
-        lobbyRepository.save(lobby);
-        return true;
+        playerRepository.save(player);
+        return player;
     }
 
-    public boolean changePlayerRole(Long lobbyId, Long playerId, String role) {
-        Lobby lobby = getLobbyById(lobbyId);
-        if (lobby == null) return false;
+    public Player changePlayerRole(Long lobbyId, Long playerId, String roleStr) {
+        Player player = playerRepository.findById(playerId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found with id: " + playerId));
 
-        Player player = lobby.getPlayers().stream()
-                .filter(p -> playerId.equals(p.getId()))
-                .findFirst().orElse(null);
-
-        if (player == null) return false;
-
-        if ("spymaster".equalsIgnoreCase(role) || "field operative".equalsIgnoreCase(role)) {
-            player.setRole(PlayerRole.valueOf(role));
-        } else {
-            return false;
+        PlayerRole role;
+        try {
+            role = PlayerRole.valueOf(roleStr.toUpperCase().replace(" ", "_"));
+            player.setRole(role);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid role: " + roleStr);
         }
 
-        lobbyRepository.save(lobby);
-        return true;
+        playerRepository.save(player);
+        return player;
     }
 
     public Boolean getPlayerReadyStatus(Long lobbyId, Long playerId) {
         Lobby lobby = getLobbyById(lobbyId);
         if (lobby == null) return null;
 
-        Player player = lobby.getPlayers().stream()
-                .filter(p -> playerId.equals(p.getId()))
-                .findFirst().orElse(null);
+        Player player = playerRepository.findById(playerId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found with id: " + playerId));
 
-        return player != null ? player.getReady() : null;
+        return player.getReady();
     }
 
-    public boolean setPlayerReadyStatus(Long lobbyId, Long playerId, boolean ready) {
+    public Player setPlayerReadyStatus(Long lobbyId, Long playerId, boolean ready, WebsocketService websocketService) {
         Lobby lobby = getLobbyById(lobbyId);
-        if (lobby == null) return false;
 
-        Player player = lobby.getPlayers().stream()
-                .filter(p -> playerId.equals(p.getId()))
-                .findFirst().orElse(null);
-
-        if (player == null) return false;
+        Player player = playerRepository.findById(playerId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found with id: " + playerId));
 
         player.setReady(ready);
 
         if (shouldStartGame(lobby)) {
             lobby.setGameStarted(true);
-            // TODO: WebSocket Nachricht an Clients senden
+            websocketService.sendMessage("/topic/lobby/" + lobbyId + "/start", true);
         }
 
-        lobbyRepository.save(lobby);
-        return true;
+        playerRepository.save(player);
+        return player;
     }
 
     public boolean shouldStartGame(Lobby lobby) {

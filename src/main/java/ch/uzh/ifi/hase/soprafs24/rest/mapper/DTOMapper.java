@@ -1,11 +1,14 @@
 package ch.uzh.ifi.hase.soprafs24.rest.mapper;
 
 import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
+import ch.uzh.ifi.hase.soprafs24.entity.Player;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GetLobbyDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs24.websocket.dto.LobbyDTO;
+import ch.uzh.ifi.hase.soprafs24.websocket.dto.PlayerUpdateDTO;
+
 import org.mapstruct.*;
 import org.mapstruct.factory.Mappers;
 
@@ -20,6 +23,8 @@ public interface DTOMapper {
     @Mapping(target = "losses", ignore = true)
     @Mapping(target = "blackCardGuesses", ignore = true)
     @Mapping(target = "ready", ignore = true)
+    @Mapping(source = "username", target = "username")
+    @Mapping(source = "password", target = "password")
     User convertUserPostDTOtoEntity(UserPostDTO userPostDTO);
 
     @Mapping(source = "id", target = "id")
@@ -30,4 +35,8 @@ public interface DTOMapper {
     GetLobbyDTO convertEntitytoGetLobbyDTO(Lobby lobby);
 
     LobbyDTO convertEntityToLobbyDTO(Lobby lobby);
+
+    @Mapping(target = "playerId", source = "id")
+    @Mapping(target = "ready", source = "ready")    
+    PlayerUpdateDTO convertEntityToPlayerUpdateDTO(Player player);
 }

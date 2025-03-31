@@ -1,24 +1,24 @@
 package ch.uzh.ifi.hase.soprafs24.rest.dto;
 
 public class LobbyResponseDTO {
-    private String lobbyId;
+    private Long lobbyId;
     private String lobbyName;
     private String gameMode;
 
     public LobbyResponseDTO() {}
 
-    public LobbyResponseDTO(String lobbyId, String lobbyName, String gameMode) {
+    public LobbyResponseDTO(Long lobbyId, String lobbyName, String gameMode) {
         this.lobbyId = lobbyId;
         this.lobbyName = lobbyName;
         this.gameMode = gameMode;
     }
 
-    public String getLobbyId() {
+    public Long getLobbyId() {
         return lobbyId;
     }
 
     public void setLobbyId(Long lobbyId) {
-        this.lobbyId = String.valueOf(lobbyId);
+        this.lobbyId = lobbyId;
     }
 
     public String getLobbyName() {
