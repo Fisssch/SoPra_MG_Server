@@ -169,6 +169,7 @@ public class LobbyController {
         webSocketService.sendMessage("/topic/lobby" + id + "/players", playerUpdateDTO);
     }
 
+    @GetMapping
     @ResponseStatus(HttpStatus.CREATED)
     public GetLobbyDTO getOrCreateLobby() {
         return DTOMapper.INSTANCE.convertEntitytoGetLobbyDTO(lobbyService.getOrCreateLobby());
