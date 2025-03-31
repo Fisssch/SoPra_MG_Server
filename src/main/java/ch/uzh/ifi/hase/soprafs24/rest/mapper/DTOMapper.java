@@ -26,6 +26,12 @@ public interface DTOMapper {
 
   DTOMapper INSTANCE = Mappers.getMapper(DTOMapper.class);
 
+  @Mapping(target = "id", ignore = true)
+  @Mapping(target = "token", ignore = true)
+  @Mapping(target = "onlineStatus", ignore = true)
+  @Mapping(target = "losses", ignore = true)
+  @Mapping(target = "blackCardGuesses", ignore = true)
+  @Mapping(target = "ready", ignore = true)
   @Mapping(source = "username", target = "username")
   @Mapping(source = "password", target = "password")
   User convertUserPostDTOtoEntity(UserPostDTO userPostDTO);

@@ -1,39 +1,143 @@
 package ch.uzh.ifi.hase.soprafs24.controller;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
-
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.GetLobbyDTO;
-import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
+import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
+import ch.uzh.ifi.hase.soprafs24.entity.Player;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.*;
 import ch.uzh.ifi.hase.soprafs24.service.LobbyService;
 import ch.uzh.ifi.hase.soprafs24.service.WebsocketService;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.GetMapping;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
-public class LobbyController {  
+@RequestMapping("/lobby")
+public class LobbyController {
+
     private final LobbyService lobbyService;
     private final WebsocketService webSocketService;
-    
+  
     LobbyController(LobbyService lobbyService, WebsocketService webSocketService) {
         this.lobbyService = lobbyService;
         this.webSocketService = webSocketService;
     }
 
-    @GetMapping("lobby")
+    @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public GetLobbyDTO getOrCreateLobby(/* token */) {
-        return DTOMapper.INSTANCE.convertEntitytoGetLobbyDTO(lobbyService.getOrCreateLobby());
+    public LobbyResponseDTO createLobby(@RequestBody LobbyPostDTO lobbyPostDTO) {
+        GameMode mode;
+        try {
+            mode = GameMode.valueOf(lobbyPostDTO.getGameMode().toUpperCase());
+        } catch (IllegalArgumentException | NullPointerException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid or missing game mode");
+        }
+
+        Lobby lobby = lobbyService.createLobby(lobbyPostDTO.getLobbyName(), mode);
+
+        return new LobbyResponseDTO(
+                lobby.getLobbyID(),
+                lobby.getLobbyName(), // <-- dieser war bisher nicht drin
+                lobby.getGameMode().name()
+        );
     }
-    
-    @PutMapping("lobby/{id}")
+
+    @PutMapping("/{id}/{playerId}")
+    @ResponseStatus(HttpStatus.OK)
+    public PlayerResponseDTO addPlayerToLobby(@PathVariable Long id, @PathVariable Long playerId) {
+        Player player = new Player();
+        player.setId(playerId);
+        Player addedPlayer = lobbyService.addPlayerToLobby(id, player);
+
+        if (addedPlayer == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby or player not found");
+        }
+
+        PlayerResponseDTO response = new PlayerResponseDTO();
+        response.setId(addedPlayer.getId());
+        response.setRole(addedPlayer.getRole().name());
+        response.setReady(addedPlayer.getReady());
+        if (addedPlayer.getTeam() != null) {
+            response.setTeamColor(addedPlayer.getTeam().getColor());
+        }
+
+        return response;
+    }
+
+    @GetMapping("/{id}/role/{playerId}")
+    @ResponseStatus(HttpStatus.OK)
+    public PlayerRoleDTO getPlayerRole(@PathVariable Long id, @PathVariable Long playerId) {
+        Lobby lobby = lobbyService.getLobbyById(id);
+        if (lobby == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found");
+
+        Player player = lobby.getPlayers().stream()
+                .filter(p -> playerId.equals(p.getId()))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found"));
+
+        return new PlayerRoleDTO(player.getRole().name());
+    }
+
+    /**
+     * Changes the role of a player in a given lobby.
+     * Throws 400 if role is invalid or player not found.
+     * Throws 409 if the team already has a spymaster.
+     */
+    @PutMapping("/{id}/role/{playerId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void putMethodName(@PathVariable Integer id, @RequestBody GameMode gameMode) {
-        var lobby = lobbyService.setGameMode(id, gameMode);
-        webSocketService.sendMessage("/topic/lobby", DTOMapper.INSTANCE.convertEntityToLobbyDTO(lobby));
+    public void changePlayerRole(@PathVariable Long id, @PathVariable Long playerId, @RequestBody RoleUpdateDTO roleUpdate) {
+        boolean changed = lobbyService.changePlayerRole(id, playerId, roleUpdate.getRole());
+        if (!changed) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid role or player not found");
+        }
+    }
+
+    @GetMapping("/{id}/team/{playerId}")
+    @ResponseStatus(HttpStatus.OK)
+    public PlayerTeamDTO getPlayerTeam(@PathVariable Long id, @PathVariable Long playerId) {
+        Lobby lobby = lobbyService.getLobbyById(id);
+        if (lobby == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found");
+
+        Player player = lobby.getPlayers().stream()
+                .filter(p -> playerId.equals(p.getId()))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found"));
+
+        if (player.getTeam() == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Team not assigned");
+        }
+
+        return new PlayerTeamDTO(player.getTeam().getColor());
+    }
+
+    @PutMapping("/{id}/team/{playerId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void changePlayerTeam(@PathVariable Long id, @PathVariable Long playerId, @RequestBody TeamUpdateDTO teamUpdate) {
+        boolean changed = lobbyService.changePlayerTeam(id, playerId, teamUpdate.getColor());
+        if (!changed) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid team color or player not found");
+        }
+    }
+
+    @GetMapping("/{id}/status/{playerId}")
+    @ResponseStatus(HttpStatus.OK)
+    public ReadyStatusDTO getPlayerReadyStatus(@PathVariable Long id, @PathVariable Long playerId) {
+        Boolean ready = lobbyService.getPlayerReadyStatus(id, playerId);
+        if (ready == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Player or lobby not found");
+        }
+
+        ReadyStatusDTO dto = new ReadyStatusDTO();
+        dto.setReady(ready);
+        return dto;
+    }
+
+    @PutMapping("/{id}/status/{playerId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void setPlayerReadyStatus(@PathVariable Long id, @PathVariable Long playerId, @RequestBody ReadyStatusDTO statusUpdate) {
+        boolean updated = lobbyService.setPlayerReadyStatus(id, playerId, statusUpdate.getReady());
+        if (!updated) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby or player not found");
+        }
     }
 }

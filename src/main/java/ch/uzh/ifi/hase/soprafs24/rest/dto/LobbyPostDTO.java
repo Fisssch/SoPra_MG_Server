@@ -1,0 +1,31 @@
+package ch.uzh.ifi.hase.soprafs24.rest.dto;
+
+public class LobbyPostDTO {
+    private String lobbyName;
+    private String gameMode; // als String vom Client
+    private Long hostId;
+
+    public String getLobbyName() {
+        return lobbyName;
+    }
+
+    public void setLobbyName(String lobbyName) {
+        this.lobbyName = lobbyName;
+    }
+
+    public String getGameMode() {
+        return gameMode;
+    }
+
+    public void setGameMode(String gameMode) {
+        this.gameMode = gameMode;
+    }
+
+    public Long getHostId() {
+        return hostId;
+    }
+
+    public void setHostId(Long hostId) {
+        this.hostId = hostId;
+    }
+}

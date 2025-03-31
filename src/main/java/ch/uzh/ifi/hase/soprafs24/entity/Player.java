@@ -6,6 +6,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import ch.uzh.ifi.hase.soprafs24.constant.PlayerRole;
 
+
 @Document(collection = "PLAYER")
 public class Player extends DatabaseEntity {
 
@@ -14,9 +15,9 @@ public class Player extends DatabaseEntity {
     @DBRef(lazy = true)
     private Team team;
 
-    @DBRef(lazy = true)
-    private PlayerRole role; // "spymaster" oder "field operative"
-
+    private PlayerRole role;
+    private Boolean ready;
+    
     public Team getTeam() {
         return team;
     }
@@ -32,6 +33,12 @@ public class Player extends DatabaseEntity {
     public void setRole(PlayerRole role) {
         this.role = role;
     }
+    public Boolean getReady() {
+        return ready;
+    }
 
+    public void setReady(Boolean ready) {
+        this.ready = ready;
+    }
     // Optional: giveHint() und guessWord() als Platzhalter für spätere Logik
 }
