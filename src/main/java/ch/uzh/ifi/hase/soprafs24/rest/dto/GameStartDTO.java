@@ -6,6 +6,7 @@ import ch.uzh.ifi.hase.soprafs24.constant.TeamColor;
 public class GameStartDTO {
     private TeamColor startingTeam;
     private GameMode gameMode; 
+    private String theme;
 
     public TeamColor getStartingTeam() {
         return startingTeam;
@@ -21,5 +22,13 @@ public class GameStartDTO {
 
     public void setGameMode(GameMode gameMode){
         this.gameMode = gameMode;
+    }
+
+    public String getTheme(){
+        return theme;
+    }
+
+    public void setTheme(String theme){
+        this.theme = theme;
     }
 }

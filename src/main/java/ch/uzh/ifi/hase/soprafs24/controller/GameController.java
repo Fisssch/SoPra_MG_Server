@@ -49,7 +49,7 @@ public class GameController {
     @ResponseStatus(HttpStatus.OK)
     public List<String> getGameWords(@PathVariable Long id, @RequestHeader("Authorization") String authHeader) {
         userService.extractAndValidateToken(authHeader);
-        List<String> words= gameService.generateWords(id); 
+        List<String> words= gameService.generateWords(id, "default"); //call here with default since we never create new words here, just get current words from game 
         return words;
     } 
 
@@ -62,7 +62,8 @@ public class GameController {
 
         TeamColor startingTeam = gameStartDTO.getStartingTeam();
         GameMode gameMode = gameStartDTO.getGameMode();
-        Game game = gameService.startOrGetGame(id, startingTeam, gameMode);
+        String theme = gameStartDTO.getTheme();
+        Game game = gameService.startOrGetGame(id, startingTeam, gameMode, theme);
         return game;
         }
 

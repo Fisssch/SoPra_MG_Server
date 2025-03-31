@@ -38,7 +38,7 @@ public class GameService {
     this.gameRepository = gameRepository;
   }
 
-  public Game startOrGetGame(Long id, TeamColor startingTeam, GameMode gameMode) {
+  public Game startOrGetGame(Long id, TeamColor startingTeam, GameMode gameMode, String theme) {
     Optional<Game> optionalGame = gameRepository.findById(id);
     Game game;
         
@@ -54,7 +54,7 @@ public class GameService {
         game.setGameMode(gameMode);
         game = gameRepository.save(game); 
 
-        List <String> words = generateWords(id); 
+        List <String> words = generateWords(id, theme); 
         game.setWords(words);
         List <Card> board = assignColorsToWords(words, startingTeam);
         game.setBoard(board);
@@ -102,13 +102,18 @@ public class GameService {
         return board;
         }
 
-    public List<String> generateWords(Long id){
+    public List<String> generateWords(Long id, String theme){
         Game game = gameRepository.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game with id " + id + " not found."));
         if (game.getWords() != null && !game.getWords().isEmpty()){
             return game.getWords(); 
         }
-        List<String> words = wordGenerationService.getWordsFromApi();
+        List<String> words;
+        if (theme == null || theme.equalsIgnoreCase("default")){
+            words = wordGenerationService.getWordsFromApi();
+        } else {
+            words = wordGenerationService.getWordsFromApi(theme);
+        }
         return words; 
     }
 }
