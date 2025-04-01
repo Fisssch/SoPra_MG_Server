@@ -155,11 +155,11 @@ public class UserService {
 
   public User validateToken(String token){
     if (token == null || token.isEmpty()){
-      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing authentification");
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing authentication");
     }
     User user = userRepository.findByToken(token); 
     if (user == null){
-      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "An invalid token was provided");
     }
     return user;
   } 

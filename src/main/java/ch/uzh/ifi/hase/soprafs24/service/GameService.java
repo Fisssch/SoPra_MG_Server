@@ -7,21 +7,15 @@ import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import ch.uzh.ifi.hase.soprafs24.constant.CardColor;
-import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
-import ch.uzh.ifi.hase.soprafs24.entity.Card;
-import ch.uzh.ifi.hase.soprafs24.entity.Game;
-import ch.uzh.ifi.hase.soprafs24.service.WordGenerationService;
-import ch.uzh.ifi.hase.soprafs24.constant.TeamColor;
+import ch.uzh.ifi.hase.soprafs24.constant.*;
+import ch.uzh.ifi.hase.soprafs24.entity.*;
 
-import ch.uzh.ifi.hase.soprafs24.repository.GameRepository;
-import ch.uzh.ifi.hase.soprafs24.repository.TeamRepository;
+import ch.uzh.ifi.hase.soprafs24.repository.*;
 
 @Service
 @Transactional
@@ -31,11 +25,20 @@ public class GameService {
   private final WordGenerationService wordGenerationService;
   private final GameRepository gameRepository;
   private final TeamRepository teamRepository;
+  private final PlayerRepository playerRepository;
 
-  public GameService(WordGenerationService wordGenerationService, GameRepository gameRepository, TeamRepository teamRepository) {
+  public GameService(WordGenerationService wordGenerationService, GameRepository gameRepository, TeamRepository teamRepository, PlayerRepository playerRepository) {
     this.wordGenerationService = wordGenerationService;
     this.gameRepository = gameRepository;
     this.teamRepository = teamRepository;
+    this.playerRepository = playerRepository;
+  }
+
+  public void checkIfUserSpymaster(User user) {
+    Player player = playerRepository.findById(user.getId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found"));
+    if (player.getRole() != PlayerRole.SPYMASTER) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only spymasters can give hints");
+    }
   }
     
   public void validateHint(String hint, Integer wordCount, Long gameId) {
@@ -45,7 +48,7 @@ public class GameService {
     if (wordCount == null || wordCount < 1) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Word count must be at least 1");
     }
-    var game = gameRepository.findById(gameId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+    Game game = gameRepository.findById(gameId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
     game.setCurrentHint(hint, wordCount);
     gameRepository.save(game);
   }

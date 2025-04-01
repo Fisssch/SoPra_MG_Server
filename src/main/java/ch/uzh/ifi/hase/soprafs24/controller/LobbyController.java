@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs24.controller;
 
+import ch.uzh.ifi.hase.soprafs24.annotation.AuthorizationRequired;
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
 import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs24.entity.Player;
@@ -7,8 +8,7 @@ import ch.uzh.ifi.hase.soprafs24.rest.dto.*;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs24.service.LobbyService;
 import ch.uzh.ifi.hase.soprafs24.service.WebsocketService;
-import ch.uzh.ifi.hase.soprafs24.websocket.dto.PlayerUpdateDTO;
-import ch.uzh.ifi.hase.soprafs24.websocket.dto.RemovePlayerDTO;
+import ch.uzh.ifi.hase.soprafs24.websocket.dto.*;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -26,8 +26,16 @@ public class LobbyController {
         this.webSocketService = webSocketService;
     }
 
+    @GetMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    @AuthorizationRequired
+    public GetLobbyDTO getOrCreateLobby() {
+        return DTOMapper.INSTANCE.convertEntitytoGetLobbyDTO(lobbyService.getOrCreateLobby());
+    }
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @AuthorizationRequired
     public LobbyResponseDTO createLobby(@RequestBody LobbyPostDTO lobbyPostDTO) {
         GameMode mode;
         try {
@@ -45,8 +53,17 @@ public class LobbyController {
         );
     }
 
+    @PutMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @AuthorizationRequired
+    public void updateGameMode(@PathVariable Long id, @RequestBody GameMode gameMode) {
+        var lobby = lobbyService.setGameMode(id, gameMode);
+        webSocketService.sendMessage("/topic/lobby" + id + "/gameMode", DTOMapper.INSTANCE.convertEntityToLobbyDTO(lobby));
+    }
+
     @PutMapping("/{id}/{playerId}")
     @ResponseStatus(HttpStatus.OK)
+    @AuthorizationRequired
     public PlayerResponseDTO addPlayerToLobby(@PathVariable Long id, @PathVariable Long playerId) {
         Player addedPlayer = lobbyService.addPlayerToLobby(id, playerId);
 
@@ -73,6 +90,7 @@ public class LobbyController {
 
     @DeleteMapping("/{id}/{playerId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @AuthorizationRequired
     public void removePlayerFromLobby(@PathVariable Long id, @PathVariable Long playerId) {   
         lobbyService.removePlayerFromLobby(id, playerId);
 
@@ -81,6 +99,7 @@ public class LobbyController {
 
     @GetMapping("/{id}/role/{playerId}")
     @ResponseStatus(HttpStatus.OK)
+    @AuthorizationRequired
     public PlayerRoleDTO getPlayerRole(@PathVariable Long id, @PathVariable Long playerId) {
         Lobby lobby = lobbyService.getLobbyById(id);
         if (lobby == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found");
@@ -101,6 +120,7 @@ public class LobbyController {
      */
     @PutMapping("/{id}/role/{playerId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @AuthorizationRequired
     public void changePlayerRole(@PathVariable Long id, @PathVariable Long playerId, @RequestBody RoleUpdateDTO roleUpdate) {
         Player updatedPlayer = lobbyService.changePlayerRole(id, playerId, roleUpdate.getRole());
         if (updatedPlayer == null) {
@@ -114,6 +134,7 @@ public class LobbyController {
 
     @GetMapping("/{id}/team/{playerId}")
     @ResponseStatus(HttpStatus.OK)
+    @AuthorizationRequired
     public PlayerTeamDTO getPlayerTeam(@PathVariable Long id, @PathVariable Long playerId) {
         Lobby lobby = lobbyService.getLobbyById(id);
         if (lobby == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found");
@@ -132,6 +153,7 @@ public class LobbyController {
 
     @PutMapping("/{id}/team/{playerId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @AuthorizationRequired
     public void changePlayerTeam(@PathVariable Long id, @PathVariable Long playerId, @RequestBody TeamUpdateDTO teamUpdate) {
         Player updatedPlayer = lobbyService.changePlayerTeam(id, playerId, teamUpdate.getColor());
         if (updatedPlayer == null) {
@@ -145,6 +167,7 @@ public class LobbyController {
 
     @GetMapping("/{id}/status/{playerId}")
     @ResponseStatus(HttpStatus.OK)
+    @AuthorizationRequired
     public ReadyStatusDTO getPlayerReadyStatus(@PathVariable Long id, @PathVariable Long playerId) {
         Boolean ready = lobbyService.getPlayerReadyStatus(id, playerId);
         if (ready == null) {
@@ -158,6 +181,7 @@ public class LobbyController {
 
     @PutMapping("/{id}/status/{playerId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @AuthorizationRequired
     public void setPlayerReadyStatus(@PathVariable Long id, @PathVariable Long playerId, @RequestBody ReadyStatusDTO statusUpdate) {
         Player updatedPlayer = lobbyService.setPlayerReadyStatus(id, playerId, statusUpdate.getReady(), webSocketService);
         if (updatedPlayer == null) {
@@ -167,18 +191,5 @@ public class LobbyController {
         playerUpdateDTO.setColor(updatedPlayer.getTeam() != null ? updatedPlayer.getTeam().getColor() : null);
         playerUpdateDTO.setRole(updatedPlayer.getRole() != null ? updatedPlayer.getRole().name() : null);
         webSocketService.sendMessage("/topic/lobby" + id + "/players", playerUpdateDTO);
-    }
-
-    @GetMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public GetLobbyDTO getOrCreateLobby() {
-        return DTOMapper.INSTANCE.convertEntitytoGetLobbyDTO(lobbyService.getOrCreateLobby());
-    }
-
-    @PutMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void updateGameMode(@PathVariable Long id, @RequestBody GameMode gameMode) {
-        var lobby = lobbyService.setGameMode(id, gameMode);
-        webSocketService.sendMessage("/topic/lobby" + id + "/gameMode", DTOMapper.INSTANCE.convertEntityToLobbyDTO(lobby));
     }
 }

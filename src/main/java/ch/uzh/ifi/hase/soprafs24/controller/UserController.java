@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs24.controller;
 
+import ch.uzh.ifi.hase.soprafs24.annotation.AuthorizationRequired;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserLoginDTO;
@@ -24,10 +25,7 @@ import java.util.Map;
  * UserService and finally return the result.
  */
 
-@CrossOrigin(
-  origins = "http://localhost:3000", 
-  exposedHeaders = "Authorization"
-) 
+
 @RestController
 public class UserController {
 
@@ -47,7 +45,7 @@ public class UserController {
           @RequestBody UserUpdateUsernameDTO usernameDTO) {
     String token = userService.extractToken(authHeader); 
     userService.updateUsername(id, usernameDTO.getUsername(), token); 
-          }
+  }
 
   //update password 
   @PutMapping("/users/{id}/password")
@@ -59,7 +57,7 @@ public class UserController {
           @RequestBody UserUpdatePasswordDTO passwordDTO) {
     String token = userService.extractToken(authHeader); 
     userService.updatePassword(id, passwordDTO.getOldPassword(), passwordDTO.getNewPassword(), token); 
-          }
+  }
 
 
   //user stats 
@@ -77,9 +75,8 @@ public class UserController {
   @GetMapping("/users")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
-  public List<UserGetDTO> getAllUsers(@RequestHeader("Authorization") String authHeader) {
-    String token = userService.extractToken(authHeader);
-    userService.validateToken(token);
+  @AuthorizationRequired
+  public List<UserGetDTO> getAllUsers() {
     // fetch all users in the internal representation
     List<User> users = userService.getUsers();
     List<UserGetDTO> userGetDTOs = new ArrayList<>();

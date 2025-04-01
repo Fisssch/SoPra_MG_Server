@@ -20,6 +20,7 @@ public class Game extends DatabaseEntity {
     private GameMode gameMode;
     private String currentHint;
     private int wordCount;
+    private int guessedInHint;
 
     public GameMode getGameMode(){
         return gameMode;
@@ -84,5 +85,14 @@ public class Game extends DatabaseEntity {
     public void setCurrentHint(String currentHint, Integer wordCount) {
         this.currentHint = currentHint;
         this.wordCount = wordCount;
+        this.guessedInHint = 0;
+    }
+
+    public int getGuessedInHint() {
+        return guessedInHint;
+    }
+
+    public void setGuessedInHint(int guessedInHint) {
+        this.guessedInHint = guessedInHint;
     }
 }
