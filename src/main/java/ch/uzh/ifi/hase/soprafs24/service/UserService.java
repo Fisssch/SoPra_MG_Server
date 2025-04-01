@@ -155,11 +155,11 @@ public class UserService {
 
   public User validateToken(String token){
     if (token == null || token.isEmpty()){
-      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing authentification");
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing authentication");
     }
     User user = userRepository.findByToken(token); 
     if (user == null){
-      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "An invalid token was provided");
     }
     return user;
   } 
@@ -173,6 +173,9 @@ public class UserService {
     if (header == null){
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing header");
     }
-    return header.substring(7);
+    if (header.startsWith("Bearer ")) {
+      header = header.substring(7); // Remove "Bearer " prefix
+    }
+    return header;
   }
 }

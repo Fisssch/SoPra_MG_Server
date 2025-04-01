@@ -1,4 +1,4 @@
-Websockets:
+# Websockets
 
 | Path | Description | Data |
 | ---- | ----------- | ---- |
@@ -7,3 +7,4 @@ Websockets:
 | /topic/lobby/{id}/addPlayer | Player is added to lobby. | `ready: bool, color: string, role: string, playerId: long` <- Data of added player |
 | /topic/lobby/{id}/removePlayer | Player is removed from lobby. | `id: long` <- ID of removed player |
 | /topic/lobby/{id}/start | Game start. | `true` |
+| /topic/game/{id}/hint | Hint is given | `hint: string, wordsCount: int, teamId: long` |
