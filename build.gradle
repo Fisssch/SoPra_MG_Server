@@ -63,6 +63,7 @@ sonar {
         property "sonar.projectKey", "Fisssch_SoPra_MG_Server"
         property "sonar.organization", "fs25-group25"
         property "sonar.host.url", "https://sonarcloud.io"
+        property "sonar.projectName", "SoPra_MG_Server"
     }
 }
 
