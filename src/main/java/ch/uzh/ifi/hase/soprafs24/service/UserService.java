@@ -162,6 +162,11 @@ public class UserService {
       throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
     }
     return user;
+  } 
+
+  public void extractAndValidateToken(String header) {
+    String token = extractToken(header); 
+    validateToken(token); 
   }
 
   public String extractToken(String header){
