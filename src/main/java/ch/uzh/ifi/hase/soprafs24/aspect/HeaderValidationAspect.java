@@ -43,6 +43,10 @@ public class HeaderValidationAspect {
         String requiredHeaderName = requiredHeaderAnnotation.headerName();
         
         String headerValue = request.getHeader(requiredHeaderName);
+        
+        if (headerValue.startsWith("Bearer ")) {
+            headerValue = headerValue.substring(7); // Remove "Bearer " prefix
+        }
 
         // Check if the header is present and valid
         userService.validateToken(headerValue);
