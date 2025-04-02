@@ -79,6 +79,9 @@ public class Game extends DatabaseEntity {
     }
 
     public Map.Entry<String, Integer> getCurrentHint() {
+        if (currentHint == null || wordCount == 0) {
+            return null; 
+        }
         return Map.entry(currentHint, wordCount);
     }
 
