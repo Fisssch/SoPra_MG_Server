@@ -7,16 +7,6 @@ import java.time.LocalDateTime;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-/**
- * Internal User Representation
- * This class composes the internal representation of the user and defines how
- * the user is stored in the database.
- * Every variable will be mapped into a database field with the @Column
- * annotation
- * - nullable = false -> this cannot be left empty
- * - unique = true -> this value must be unqiue across the database -> composes
- * the primary key
- */
 @Document(collection = "USER")
 public class User extends DatabaseEntity {
 
@@ -73,12 +63,28 @@ public class User extends DatabaseEntity {
       this.wins = wins;
   }
 
+  public void addWin() {
+      if (this.wins == null) {
+          this.wins = 1;
+      } else {
+          this.wins++;
+      }
+  }
+
   public Integer getLosses() {
       return losses;
   }
 
   public void setLosses(Integer losses) {
       this.losses = losses;
+  }
+
+  public void addLoss() {
+      if (this.losses == null) {
+          this.losses = 1;
+      } else {
+          this.losses++;
+      }
   }
 
   public Integer getBlackCardGuesses() {
@@ -89,6 +95,13 @@ public class User extends DatabaseEntity {
       this.blackCardGuesses = blackCardGuesses;
   }
 
+  public void addBlackCardGuess() {
+      if (this.blackCardGuesses == null) {
+          this.blackCardGuesses = 1;
+      } else {
+          this.blackCardGuesses++;
+      }
+  }
 
   public Boolean getReady() {
       return ready;

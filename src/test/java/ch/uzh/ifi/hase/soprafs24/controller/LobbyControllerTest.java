@@ -2,6 +2,7 @@ package ch.uzh.ifi.hase.soprafs24.controller;
 
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
 import ch.uzh.ifi.hase.soprafs24.constant.PlayerRole;
+import ch.uzh.ifi.hase.soprafs24.constant.TeamColor;
 import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs24.entity.Player;
 import ch.uzh.ifi.hase.soprafs24.entity.Team;
@@ -88,7 +89,7 @@ public class LobbyControllerTest {
             Player mockPlayer = new Player();
             mockPlayer.setId(1L);
             Team team = new Team();
-            team.setColor("red");
+            team.setColor(TeamColor.RED);
             mockPlayer.setTeam(team);
 
             Lobby mockLobby = new Lobby();
@@ -98,7 +99,7 @@ public class LobbyControllerTest {
 
             mockMvc.perform(get("/lobby/1/team/1"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.color").value("red"));
+                    .andExpect(jsonPath("$.color").value("RED"));
         }
 
         @Test

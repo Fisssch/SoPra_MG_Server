@@ -16,11 +16,11 @@ public class Game extends DatabaseEntity {
     private TeamColor startingTeam; 
     private TeamColor teamTurn; 
     private String status;
-    private String winningTeam;
+    private TeamColor winningTeam;
     private GameMode gameMode;
     private String currentHint;
-    private int wordCount;
-    private int guessedInHint;
+    private Integer wordCount;
+    private Integer guessedInHint;
 
     public GameMode getGameMode(){
         return gameMode;
@@ -30,11 +30,11 @@ public class Game extends DatabaseEntity {
         this.gameMode = gameMode;
     }
 
-    public String getWinningTeam(){
+    public TeamColor getWinningTeam(){
         return winningTeam;
     }
 
-    public void setWinningTeam(String winningTeam){
+    public void setWinningTeam(TeamColor winningTeam){
         this.winningTeam = winningTeam;
     }
 
@@ -91,11 +91,18 @@ public class Game extends DatabaseEntity {
         this.guessedInHint = 0;
     }
 
-    public int getGuessedInHint() {
+    public void addGuessedInHint() {
+        if (this.guessedInHint == null) {
+            this.guessedInHint = 0;
+        }
+        this.guessedInHint++;
+    }
+
+    public Integer getGuessedInHint() {
         return guessedInHint;
     }
 
-    public void setGuessedInHint(int guessedInHint) {
+    public void setGuessedInHint(Integer guessedInHint) {
         this.guessedInHint = guessedInHint;
     }
 }

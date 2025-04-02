@@ -13,6 +13,7 @@ db.getCollection("TEAM")
     .forEach((team) => {
         console.log(team);
     });
+console.log("----------------------");
 
 console.log("Players:");
 db.getCollection("PLAYER")
@@ -20,6 +21,7 @@ db.getCollection("PLAYER")
     .forEach((player) => {
         console.log(player);
     });
+console.log("----------------------");
 
 console.log("Lobbies");
 db.getCollection("LOBBY")
@@ -27,6 +29,15 @@ db.getCollection("LOBBY")
     .forEach((lobby) => {
         console.log(lobby);
     });
+console.log("----------------------");
+
+console.log("Games");
+db.getCollection("GAME")
+    .find({})
+    .forEach((lobby) => {
+        console.log(lobby);
+    });
+console.log("----------------------");
 
 console.log("Users:");
 db.getCollection("USER")
@@ -34,3 +45,4 @@ db.getCollection("USER")
     .forEach((user) => {
         console.log(user);
     });
+console.log("----------------------");

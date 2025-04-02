@@ -8,3 +8,5 @@
 | /topic/lobby/{id}/removePlayer | Player is removed from lobby. | `id: long` <- ID of removed player |
 | /topic/lobby/{id}/start | Game start. | `true` |
 | /topic/game/{id}/hint | Hint is given | `hint: string, wordsCount: int, teamId: long` |
+| /topic/game/{id}/guess | Guess is made | `teamColor: string, wordStr: string` <- Team Color isch color vo team wo als nöchsts dra isch mit guesse |
+| /topic/game/{id}/gameCompleted | Game finished. | `Color of winning team` |

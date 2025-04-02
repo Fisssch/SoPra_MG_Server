@@ -10,9 +10,11 @@ import ch.uzh.ifi.hase.soprafs24.entity.Card;
 import ch.uzh.ifi.hase.soprafs24.entity.Game;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GameStartDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GiveHintDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.makeGuessDTO;
 import ch.uzh.ifi.hase.soprafs24.service.*;
 
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import ch.uzh.ifi.hase.soprafs24.annotation.AuthorizationRequired;
 
@@ -63,4 +65,26 @@ public class GameController {
     public List<Card> getBoard(@PathVariable Long id) {
         return gameService.getBoard(id);
     }
+
+    @PutMapping("/game/{id}/guess")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void makeGuess(@PathVariable Long id, @RequestHeader("Authorization") String authHeader, @RequestBody makeGuessDTO guessDTO) {
+        String token = userService.extractToken(authHeader);
+        String colorStr = guessDTO.getTeamColor();
+        TeamColor color;
+        try{
+            color = TeamColor.valueOf(colorStr.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid team color: " + colorStr);
+        }
+        var result = gameService.makeGuess(id, color, guessDTO.getWordStr(), userService.validateToken(token));
+        var isGameCompleted = result.getKey();
+        var team = result.getValue();
+        if (isGameCompleted) {
+            webSocketService.sendMessage("/topic/game/" + id + "/gameCompleted", team.name());
+            gameService.updatePlayerStats(id, team);
+        } else {
+            webSocketService.sendMessage("/topic/game/" + id + "/guess", guessDTO);
+        }
+    } 
 }
