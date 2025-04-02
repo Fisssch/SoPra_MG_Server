@@ -2,6 +2,8 @@ package ch.uzh.ifi.hase.soprafs24.entity;
 
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import ch.uzh.ifi.hase.soprafs24.constant.TeamColor;
+
 import java.util.List;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 
@@ -10,7 +12,7 @@ public class Team extends DatabaseEntity {
 
     private static final long serialVersionUID = 1L;
 
-    private String color; // "red" oder "blue"
+    private TeamColor color; // "red" oder "blue"
 
     @DBRef(lazy = true)
     private List<Player> players; // TODO: Test if it works (probably not)
@@ -18,11 +20,11 @@ public class Team extends DatabaseEntity {
     @DBRef(lazy = true)
     private Player spymaster; // TODO: Test if it works (probably does)
 
-    public String getColor() {
+    public TeamColor getColor() {
         return color;
     }
 
-    public void setColor(String color) {
+    public void setColor(TeamColor color) {
         this.color = color;
     }
 

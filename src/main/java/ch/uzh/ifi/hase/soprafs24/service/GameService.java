@@ -3,6 +3,7 @@ package ch.uzh.ifi.hase.soprafs24.service;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.slf4j.Logger;
@@ -24,14 +25,16 @@ public class GameService {
   private final Logger log = LoggerFactory.getLogger(GameService.class);
   private final WordGenerationService wordGenerationService;
   private final GameRepository gameRepository;
-  private final TeamRepository teamRepository;
   private final PlayerRepository playerRepository;
+  private final UserRepository userRepository;
+  private final LobbyRepository lobbyRepository;
 
-  public GameService(WordGenerationService wordGenerationService, GameRepository gameRepository, TeamRepository teamRepository, PlayerRepository playerRepository) {
+  public GameService(WordGenerationService wordGenerationService, GameRepository gameRepository, PlayerRepository playerRepository, UserRepository userRepository, LobbyRepository lobbyRepository) {
     this.wordGenerationService = wordGenerationService;
     this.gameRepository = gameRepository;
-    this.teamRepository = teamRepository;
     this.playerRepository = playerRepository;
+    this.userRepository = userRepository;
+    this.lobbyRepository = lobbyRepository;
   }
 
   public void checkIfUserSpymaster(User user) {
@@ -85,6 +88,94 @@ public class GameService {
         return game.getBoard();
     }
 
+    /*
+     * Returns a tuple with a bool which indicates if the game is over and a TeamColor which team has either won or whose turn it is next.
+     */
+    public Map.Entry<Boolean, TeamColor> makeGuess(Long id, TeamColor teamColor, String wordStr, User user) {
+        Game game = gameRepository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+        if (game.getTeamTurn() != teamColor) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "It's not your turn");
+        }
+        if (game.getGuessedInHint() >= game.getCurrentHint().getValue()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You have already guessed the maximum number of words for this hint");
+        }
+        if (game.getStatus().equalsIgnoreCase("finished")) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Game is already finished");
+        }
+        Map.Entry<Boolean, TeamColor> result;
+        Card word = findWord(game.getBoard(), wordStr);
+        var opponentTeam = teamColor == TeamColor.RED ? TeamColor.BLUE : TeamColor.RED;
+
+        // Black card guess
+        if (word.getColor() == CardColor.BLACK) {
+            word.setGuessed(true);
+            game.setWinningTeam(opponentTeam);
+            game.setStatus("finished");
+            user.addBlackCardGuess();
+            userRepository.save(user);
+            result = Map.entry(true, opponentTeam);
+        } 
+        // Neutral card guess
+        else if (word.getColor() == CardColor.NEUTRAL) {
+            word.setGuessed(true);
+            game.setTeamTurn(opponentTeam);
+            result = Map.entry(false, opponentTeam);
+        } 
+        // Enemy card guess
+        else if (word.getColor().name() != teamColor.name()) {
+            word.setGuessed(true);
+            game.setTeamTurn(opponentTeam);
+            Long leftToGuess = game.getBoard().stream()
+                .filter(card -> card.getColor() == word.getColor() && !card.isGuessed())
+                .count();
+            if (leftToGuess == 0) {
+                game.setWinningTeam(opponentTeam);
+                game.setStatus("finished");
+                result = Map.entry(true, opponentTeam);
+            } else
+                result = Map.entry(false, opponentTeam);
+        }
+        // Correct card guess
+        else {
+          word.setGuessed(true);
+          game.addGuessedInHint();
+          Long leftToGuess = game.getBoard().stream()
+              .filter(card -> card.getColor() == word.getColor() && !card.isGuessed())
+              .count();
+          if (leftToGuess == 0) {
+              game.setWinningTeam(teamColor);
+              game.setStatus("finished");
+              result = Map.entry(true, teamColor);
+          } else {
+              if (game.getGuessedInHint() >= game.getCurrentHint().getValue()) {
+                  game.setTeamTurn(opponentTeam);
+                  result = Map.entry(false,  opponentTeam);
+              }
+              else
+                result = Map.entry(false,  teamColor);
+          }
+        }
+        gameRepository.save(game);
+        return result;
+    }
+
+    public void updatePlayerStats(Long id, TeamColor teamColor) {
+        Lobby lobby = lobbyRepository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
+        List<Player> players = lobby.getPlayers();
+        for (Player player : players) {
+            User user = userRepository.findById(player.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+            if (player.getTeam().getColor() == teamColor) {
+                user.addWin();
+            } else {
+                user.addLoss();
+            }
+            userRepository.save(user);
+        }
+    }
+
     /////////////////////// helper methods: ///////////////////////
     private List<Card> assignColorsToWords(List<String> words, TeamColor startingTeam) {
 
@@ -130,5 +221,14 @@ public class GameService {
             words = wordGenerationService.getWordsFromApi(theme);
         }
         return words; 
+    }
+
+    private Card findWord(List<Card> words, String word) {
+      for (Card card : words) {
+          if (card.getWord().equalsIgnoreCase(word)) {
+              return card;
+          }
+      }
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Word not found in the game board");
     }
 }

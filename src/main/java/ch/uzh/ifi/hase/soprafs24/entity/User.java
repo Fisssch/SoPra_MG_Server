@@ -73,12 +73,28 @@ public class User extends DatabaseEntity {
       this.wins = wins;
   }
 
+  public void addWin() {
+      if (this.wins == null) {
+          this.wins = 1;
+      } else {
+          this.wins++;
+      }
+  }
+
   public Integer getLosses() {
       return losses;
   }
 
   public void setLosses(Integer losses) {
       this.losses = losses;
+  }
+
+  public void addLoss() {
+      if (this.losses == null) {
+          this.losses = 1;
+      } else {
+          this.losses++;
+      }
   }
 
   public Integer getBlackCardGuesses() {
@@ -89,6 +105,13 @@ public class User extends DatabaseEntity {
       this.blackCardGuesses = blackCardGuesses;
   }
 
+  public void addBlackCardGuess() {
+      if (this.blackCardGuesses == null) {
+          this.blackCardGuesses = 1;
+      } else {
+          this.blackCardGuesses++;
+      }
+  }
 
   public Boolean getReady() {
       return ready;

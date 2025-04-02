@@ -76,11 +76,11 @@ public class LobbyController {
         response.setRole(addedPlayer.getRole() != null ? addedPlayer.getRole().name() : null);
         response.setReady(addedPlayer.getReady());
         if (addedPlayer.getTeam() != null) {
-            response.setTeamColor(addedPlayer.getTeam().getColor());
+            response.setTeamColor(addedPlayer.getTeam().getColor().name());
         }
 
         PlayerUpdateDTO updateDto = DTOMapper.INSTANCE.convertEntityToPlayerUpdateDTO(addedPlayer);
-        updateDto.setColor(addedPlayer.getTeam() != null ? addedPlayer.getTeam().getColor() : null);
+        updateDto.setColor(addedPlayer.getTeam() != null ? addedPlayer.getTeam().getColor().name() : null);
         updateDto.setRole(addedPlayer.getRole() != null ? addedPlayer.getRole().name() : null);
 
         webSocketService.sendMessage("/topic/lobby" + id + "/addPlayer", updateDto);
@@ -127,7 +127,7 @@ public class LobbyController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid role or player not found");
         }
         PlayerUpdateDTO playerUpdateDTO = DTOMapper.INSTANCE.convertEntityToPlayerUpdateDTO(updatedPlayer);
-        playerUpdateDTO.setColor(updatedPlayer.getTeam() != null ? updatedPlayer.getTeam().getColor() : null);
+        playerUpdateDTO.setColor(updatedPlayer.getTeam() != null ? updatedPlayer.getTeam().getColor().name() : null);
         playerUpdateDTO.setRole(updatedPlayer.getRole() != null ? updatedPlayer.getRole().name() : null);
         webSocketService.sendMessage("/topic/lobby" + id + "/players", playerUpdateDTO);
     }
@@ -148,7 +148,7 @@ public class LobbyController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Team not assigned");
         }
 
-        return new PlayerTeamDTO(player.getTeam().getColor());
+        return new PlayerTeamDTO(player.getTeam().getColor().name());
     }
 
     @PutMapping("/{id}/team/{playerId}")
@@ -160,7 +160,7 @@ public class LobbyController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid team color or player not found");
         }
         PlayerUpdateDTO playerUpdateDTO = DTOMapper.INSTANCE.convertEntityToPlayerUpdateDTO(updatedPlayer);
-        playerUpdateDTO.setColor(updatedPlayer.getTeam() != null ? updatedPlayer.getTeam().getColor() : null);
+        playerUpdateDTO.setColor(updatedPlayer.getTeam() != null ? updatedPlayer.getTeam().getColor().name() : null);
         playerUpdateDTO.setRole(updatedPlayer.getRole() != null ? updatedPlayer.getRole().name() : null);
         webSocketService.sendMessage("/topic/lobby" + id + "/players", playerUpdateDTO);
     }
@@ -188,7 +188,7 @@ public class LobbyController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby or player not found");
         }
         PlayerUpdateDTO playerUpdateDTO = DTOMapper.INSTANCE.convertEntityToPlayerUpdateDTO(updatedPlayer);
-        playerUpdateDTO.setColor(updatedPlayer.getTeam() != null ? updatedPlayer.getTeam().getColor() : null);
+        playerUpdateDTO.setColor(updatedPlayer.getTeam() != null ? updatedPlayer.getTeam().getColor().name() : null);
         playerUpdateDTO.setRole(updatedPlayer.getRole() != null ? updatedPlayer.getRole().name() : null);
         webSocketService.sendMessage("/topic/lobby" + id + "/players", playerUpdateDTO);
     }

@@ -9,6 +9,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
 import ch.uzh.ifi.hase.soprafs24.constant.PlayerRole;
+import ch.uzh.ifi.hase.soprafs24.constant.TeamColor;
 import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs24.entity.Player;
 import ch.uzh.ifi.hase.soprafs24.entity.Team;
@@ -91,9 +92,9 @@ public class LobbyService {
         lobby.setLobbyCode(generateLobbyCode());
 
         Team redTeam = new Team();
-        redTeam.setColor("red");
+        redTeam.setColor(TeamColor.RED);
         Team blueTeam = new Team();
-        blueTeam.setColor("blue");
+        blueTeam.setColor(TeamColor.BLUE);
 
         lobby.setRedTeam(redTeam);
         lobby.setBlueTeam(blueTeam);
