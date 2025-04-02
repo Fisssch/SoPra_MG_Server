@@ -1,24 +1,25 @@
 package ch.uzh.ifi.hase.soprafs24.entity;
 
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.DBRef;
 
 import ch.uzh.ifi.hase.soprafs24.constant.TeamColor;
 
 import java.util.List;
-import org.springframework.data.mongodb.core.mapping.DBRef;
+import java.util.ArrayList;
 
 @Document(collection =  "TEAM")
 public class Team extends DatabaseEntity {
 
     private static final long serialVersionUID = 1L;
 
-    private TeamColor color; // "red" oder "blue"
-
+    private TeamColor color;
+    
     @DBRef(lazy = true)
-    private List<Player> players; // TODO: Test if it works (probably not)
-
+    private Lobby lobby;
+    
     @DBRef(lazy = true)
-    private Player spymaster; // TODO: Test if it works (probably does)
+    private Player spymaster;
 
     public TeamColor getColor() {
         return color;
@@ -29,11 +30,38 @@ public class Team extends DatabaseEntity {
     }
 
     public List<Player> getPlayers() {
-        return players;
+        if (lobby != null) {
+            return lobby.getPlayersByTeam(this);
+        }
+        return new ArrayList<>();
+    }
+
+    public void addPlayer(Player player) {
+        if (lobby != null && player != null) {
+            lobby.assignPlayerToTeam(player, this);
+        }
     }
 
     public void setPlayers(List<Player> players) {
-        this.players = players;
+        if (lobby != null && players != null) {
+            for (Player player : players) {
+                addPlayer(player);
+            }
+        }
+    }
+
+    public void removePlayer(Player player) {
+        if (lobby != null && player != null) {
+            lobby.removePlayerFromTeam(player, this);
+        }
+    }
+
+    public Lobby getLobby() {
+        return lobby;
+    }
+
+    public void setLobby(Lobby lobby) {
+        this.lobby = lobby;
     }
 
     public Player getSpymaster() {
@@ -43,6 +71,4 @@ public class Team extends DatabaseEntity {
     public void setSpymaster(Player spymaster) {
         this.spymaster = spymaster;
     }
-
-    // Optional: assignSpymaster() Logik folgt später
 }

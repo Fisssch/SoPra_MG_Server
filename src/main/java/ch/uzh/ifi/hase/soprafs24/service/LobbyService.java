@@ -22,14 +22,17 @@ public class LobbyService {
     private final Logger log = LoggerFactory.getLogger(LobbyService.class);
     private final LobbyRepository lobbyRepository;
     private final PlayerRepository playerRepository;
+    private final TeamRepository teamRepository;
 
-    public LobbyService(LobbyRepository lobbyRepository, PlayerRepository playerRepository) {
+    public LobbyService(LobbyRepository lobbyRepository, PlayerRepository playerRepository, TeamRepository teamRepository) {
         this.playerRepository = playerRepository;
         this.lobbyRepository = lobbyRepository;
+        this.teamRepository = teamRepository;
     }
 
     public Lobby getLobbyById(Long id) {
-        return lobbyRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found with id: " + id));
+        return lobbyRepository.findById(id).orElseThrow(
+            () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found with id: " + id));
     }
 
     public Lobby getOrCreateLobby() {
@@ -37,6 +40,7 @@ public class LobbyService {
         if (lobby == null) {
             return createLobby("Active lobby", GameMode.CLASSIC);
         }
+        
         return lobby;
     }
 
@@ -53,11 +57,11 @@ public class LobbyService {
         if (lobby == null) return null;
 
         long redCount = lobby.getPlayers().stream()
-                .filter(p -> "red".equals(p.getTeam().getColor()))
+                .filter(p -> TeamColor.RED.equals(p.getTeam().getColor()))
                 .count();
 
         long blueCount = lobby.getPlayers().stream()
-                .filter(p -> "blue".equals(p.getTeam().getColor()))
+                .filter(p -> TeamColor.BLUE.equals(p.getTeam().getColor()))
                 .count();
 
         Team assignedTeam = redCount <= blueCount ? lobby.getRedTeam() : lobby.getBlueTeam();
@@ -69,10 +73,10 @@ public class LobbyService {
         } else {
             player.setRole(PlayerRole.FIELD_OPERATIVE);
         }
-
+        
+        playerRepository.save(player);
         lobby.addPlayer(player);
         lobbyRepository.save(lobby);
-        playerRepository.save(player);
         return player;
     }
 
@@ -91,10 +95,18 @@ public class LobbyService {
         lobby.setGameMode(gameMode);
         lobby.setLobbyCode(generateLobbyCode());
 
+        // Save the lobby first to get an ID
+        lobby = lobbyRepository.save(lobby);
+
         Team redTeam = new Team();
         redTeam.setColor(TeamColor.RED);
+        redTeam.setLobby(lobby);
+        teamRepository.save(redTeam);
+        
         Team blueTeam = new Team();
         blueTeam.setColor(TeamColor.BLUE);
+        blueTeam.setLobby(lobby);
+        teamRepository.save(blueTeam);
 
         lobby.setRedTeam(redTeam);
         lobby.setBlueTeam(blueTeam);
@@ -112,9 +124,9 @@ public class LobbyService {
         Player player = playerRepository.findById(playerId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found with id: " + playerId));
 
         if ("red".equalsIgnoreCase(color)) {
-            player.setTeam(lobby.getRedTeam());
+            lobby.assignPlayerToTeam(player, lobby.getRedTeam());
         } else if ("blue".equalsIgnoreCase(color)) {
-            player.setTeam(lobby.getBlueTeam());
+            lobby.assignPlayerToTeam(player, lobby.getBlueTeam());
         } else {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid team color: " + color);
         }

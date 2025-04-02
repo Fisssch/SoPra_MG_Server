@@ -7,7 +7,6 @@ import ch.uzh.ifi.hase.soprafs24.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.springframework.http.MediaType;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
@@ -22,13 +21,15 @@ public class LobbyServiceTest {
     private LobbyRepository lobbyRepository;
     private PlayerRepository playerRepository;
     private WebsocketService websocketService;
+    private TeamRepository teamRepository;
 
     @BeforeEach
     public void setup() {
         lobbyRepository = Mockito.mock(LobbyRepository.class);
         playerRepository = Mockito.mock(PlayerRepository.class);
         websocketService = Mockito.mock(WebsocketService.class);
-        lobbyService = new LobbyService(lobbyRepository, playerRepository);
+        teamRepository = Mockito.mock(TeamRepository.class);
+        lobbyService = new LobbyService(lobbyRepository, playerRepository, teamRepository);
 
         // Wenn save() aufgerufen wird, gib die Lobby direkt zurück
         when(lobbyRepository.save(any(Lobby.class)))
@@ -78,12 +79,12 @@ public class LobbyServiceTest {
 
         // Spymaster-Zählung pro Team
         long redSpymasters = lobby.getPlayers().stream()
-                .filter(p -> p.getTeam().getColor().equals("red"))
+                .filter(p -> p.getTeam().getColor().equals(TeamColor.RED))
                 .filter(p -> PlayerRole.SPYMASTER.equals(p.getRole()))
                 .count();
 
         long blueSpymasters = lobby.getPlayers().stream()
-                .filter(p -> p.getTeam().getColor().equals("blue"))
+                .filter(p -> p.getTeam().getColor().equals(TeamColor.BLUE))
                 .filter(p -> PlayerRole.SPYMASTER.equals(p.getRole()))
                 .count();
 

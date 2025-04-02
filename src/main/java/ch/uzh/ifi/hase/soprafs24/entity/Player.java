@@ -47,5 +47,4 @@ public class Player extends DatabaseEntity {
     public void setReady(Boolean ready) {
         this.ready = ready;
     }
-    // Optional: giveHint() und guessWord() als Platzhalter für spätere Logik
 }
