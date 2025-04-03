@@ -2,6 +2,7 @@ package ch.uzh.ifi.hase.soprafs24.service;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -219,27 +220,34 @@ public class GameService {
 
         Lobby lobby = lobbyRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
 
-        Set<String> finalWords = new LinkedHashSet<>(); //use LinkedhashSet because it remembers ordering 
+        List<String> finalWords = new ArrayList<>();
+        Set<String> seenWords = new HashSet<>(); //no duplicates allowed in hashset
+        
         if (lobby.getCustomWords() != null && lobby.getGameMode() == GameMode.OWN_WORDS) { 
-          finalWords.addAll(lobby.getCustomWords().stream().map(String::toUpperCase).toList());
+          for (String word : lobby.getCustomWords()){
+            String upper = word.toUpperCase();
+            if (seenWords.add(upper)){
+                finalWords.add(upper); 
+            }
+          }
         }
-
-        while (finalWords.size() < 25) {
-          List<String> randoms = theme == null || theme.equalsIgnoreCase("default") ?
+        int needed = 25 - finalWords.size(); 
+        if(needed > 0) {
+            List<String> additional = theme == null || theme.equalsIgnoreCase("default") ?
             wordGenerationService.getWordsFromApi() : wordGenerationService.getWordsFromApi(theme); //if theme is missing or default call getWordsFromApi() else getWordsFromApi(theme)
 
-            for (String w : randoms){
-              if (finalWords.size() >= 25){
-                break;
+            for (String w : additional){
+              String upper = w.toUpperCase();
+              if (seenWords.add(upper)){
+                finalWords.add(upper);
+                if (finalWords.size() == 25) break;
               }
-              finalWords.add(w.toUpperCase());
+              
             }
         }
-
-        List<String> finalList = new ArrayList<>(finalWords).subList(0, 25); //convert set to a list only take first 25 elements
-        game.setWords(finalList);
+        game.setWords(finalWords);
         gameRepository.save(game);
-        return finalList;
+        return finalWords;
     }
 
     private Card findWord(List<Card> words, String word) {
