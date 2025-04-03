@@ -219,14 +219,12 @@ public class GameService {
         }
 
         Lobby lobby = lobbyRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
-
         List<String> finalWords = new ArrayList<>();
-        Set<String> seenWords = new HashSet<>(); //no duplicates allowed in hashset
         
         if (lobby.getCustomWords() != null && lobby.getGameMode() == GameMode.OWN_WORDS) { 
           for (String word : lobby.getCustomWords()){
             String upper = word.toUpperCase();
-            if (seenWords.add(upper)){
+            if (!finalWords.contains(upper)){
                 finalWords.add(upper); 
             }
           }
@@ -238,7 +236,7 @@ public class GameService {
 
             for (String w : additional){
               String upper = w.toUpperCase();
-              if (seenWords.add(upper)){
+              if (!finalWords.contains(upper)){
                 finalWords.add(upper);
                 if (finalWords.size() == 25) break;
               }
