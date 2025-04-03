@@ -2,9 +2,11 @@ package ch.uzh.ifi.hase.soprafs24.service;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -209,18 +211,35 @@ public class GameService {
         }
 
     public List<String> generateWords(Long id, String theme){
-        Game game = gameRepository.findById(id)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game with id " + id + " not found."));
+        Game game = gameRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game with id " + id + " not found."));
+        
         if (game.getWords() != null && !game.getWords().isEmpty()){
             return game.getWords(); 
         }
-        List<String> words;
-        if (theme == null || theme.equalsIgnoreCase("default")){
-            words = wordGenerationService.getWordsFromApi();
-        } else {
-            words = wordGenerationService.getWordsFromApi(theme);
+
+        Lobby lobby = lobbyRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
+
+        Set<String> finalWords = new LinkedHashSet<>(); //use LinkedhashSet because it remembers ordering 
+        if (lobby.getCustomWords() != null && lobby.getGameMode() == GameMode.OWN_WORDS) { 
+          finalWords.addAll(lobby.getCustomWords().stream().map(String::toUpperCase).toList());
         }
-        return words; 
+
+        while (finalWords.size() < 25) {
+          List<String> randoms = theme == null || theme.equalsIgnoreCase("default") ?
+            wordGenerationService.getWordsFromApi() : wordGenerationService.getWordsFromApi(theme); //if theme is missing or default call getWordsFromApi() else getWordsFromApi(theme)
+
+            for (String w : randoms){
+              if (finalWords.size() >= 25){
+                break;
+              }
+              finalWords.add(w.toUpperCase());
+            }
+        }
+
+        List<String> finalList = new ArrayList<>(finalWords).subList(0, 25); //convert set to a list only take first 25 elements
+        game.setWords(finalList);
+        gameRepository.save(game);
+        return finalList;
     }
 
     private Card findWord(List<Card> words, String word) {
