@@ -32,6 +32,8 @@ public class Lobby extends DatabaseEntity {
     private Team blueTeam;
     
     private boolean gameStarted = false;
+
+    private List<String> customWords = new ArrayList<>();
     
     // --- Getter & Setter ---
 
@@ -119,6 +121,23 @@ public class Lobby extends DatabaseEntity {
                          (p.getTeam().getColor() != null && team.getColor() != null && 
                           p.getTeam().getColor().equals(team.getColor()))))
                 .collect(Collectors.toList());
+    }
+
+    public List<String> getCustomWords(){
+        return customWords;
+    }
+
+    public void setCustomWords(List<String> customWords){
+        this.customWords = customWords; 
+    }
+
+    public void addCustomWord(String word){
+        if (this.customWords == null){
+            this.customWords = new ArrayList<>();
+        }
+        if (!this.customWords.contains(word.toUpperCase())){
+            this.customWords.add(word.toUpperCase());
+        }
     }
     
     /**
