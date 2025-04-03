@@ -192,4 +192,19 @@ public class LobbyController {
         playerUpdateDTO.setRole(updatedPlayer.getRole() != null ? updatedPlayer.getRole().name() : null);
         webSocketService.sendMessage("/topic/lobby" + id + "/players", playerUpdateDTO);
     }
+    @GetMapping("/{code}")
+    @ResponseStatus(HttpStatus.OK)
+    @AuthorizationRequired
+    public LobbyResponseDTO getLobbyByCode(@PathVariable Integer code) {
+        Lobby lobby = lobbyService.getLobbyByCode(code);
+        if (lobby == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby with code " + code + " not found");
+        }
+
+        return new LobbyResponseDTO(
+                lobby.getId(),
+                lobby.getLobbyName(),
+                lobby.getGameMode().name()
+        );
+    }
 }

@@ -81,12 +81,24 @@ public class LobbyService {
     }
 
     public void removePlayerFromLobby(Long lobbyId, Long playerId) {
-        Player player = playerRepository.findById(playerId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found with id: " + playerId));
         Lobby lobby = getLobbyById(lobbyId);
+        if (lobby == null) return;
 
-        lobby.removePlayer(player);
-        playerRepository.delete(player);
-        lobbyRepository.save(lobby);
+        Player player = lobby.getPlayers().stream()
+                .filter(p -> playerId.equals(p.getId()))
+                .findFirst()
+                .orElse(null);
+
+        if (player != null) {
+            lobby.removePlayer(player);
+            playerRepository.delete(player); // remove all players
+        }
+
+        if (lobby.getPlayers().isEmpty()) {
+            lobbyRepository.delete(lobby); // remove Lobby
+        } else {
+            lobbyRepository.save(lobby);
+        }
     }
 
     public Lobby createLobby(String lobbyName, GameMode gameMode) {
@@ -178,5 +190,8 @@ public class LobbyService {
     public boolean shouldStartGame(Lobby lobby) {
         return lobby.getPlayers().size() >= 4 &&
                 lobby.getPlayers().stream().allMatch(p -> Boolean.TRUE.equals(p.getReady()));
+    }
+    public Lobby getLobbyByCode(Integer code) {
+        return lobbyRepository.findByLobbyCode(code).orElse(null);
     }
 }

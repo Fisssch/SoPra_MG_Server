@@ -193,5 +193,32 @@ public class LobbyControllerTest {
                             .content(invalidJson))
                     .andExpect(status().isBadRequest());
         }
+        @Nested
+        class LobbyByCode {
+
+            @Test
+            public void getLobbyByCode_returnsLobby() throws Exception {
+                Lobby mockLobby = new Lobby();
+                mockLobby.setId(99L);
+                mockLobby.setLobbyName("JoinableLobby");
+                mockLobby.setGameMode(GameMode.CLASSIC);
+
+                when(lobbyService.getLobbyByCode(1234)).thenReturn(mockLobby);
+
+                mockMvc.perform(get("/lobby/1234"))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.lobbyId").value(99))
+                        .andExpect(jsonPath("$.lobbyName").value("JoinableLobby"))
+                        .andExpect(jsonPath("$.gameMode").value("CLASSIC"));
+            }
+
+            @Test
+            public void getLobbyByCode_notFound_returns404() throws Exception {
+                when(lobbyService.getLobbyByCode(1234)).thenReturn(null);
+
+                mockMvc.perform(get("/lobby/1234"))
+                        .andExpect(status().isNotFound());
+            }
+        }
     }
 }
