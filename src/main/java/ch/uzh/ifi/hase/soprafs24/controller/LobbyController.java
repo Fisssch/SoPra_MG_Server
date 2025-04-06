@@ -49,7 +49,8 @@ public class LobbyController {
         return new LobbyResponseDTO(
                 lobby.getId(),
                 lobby.getLobbyName(),
-                lobby.getGameMode().name()
+                lobby.getGameMode().name(),
+                lobby.getLobbyCode()
         );
     }
 
@@ -192,7 +193,7 @@ public class LobbyController {
         playerUpdateDTO.setRole(updatedPlayer.getRole() != null ? updatedPlayer.getRole().name() : null);
         webSocketService.sendMessage("/topic/lobby" + id + "/players", playerUpdateDTO);
     }
-    @GetMapping("/{code}")
+    @GetMapping("/by-code/{code}")
     @ResponseStatus(HttpStatus.OK)
     @AuthorizationRequired
     public LobbyResponseDTO getLobbyByCode(@PathVariable Integer code) {
@@ -204,7 +205,24 @@ public class LobbyController {
         return new LobbyResponseDTO(
                 lobby.getId(),
                 lobby.getLobbyName(),
-                lobby.getGameMode().name()
+                lobby.getGameMode().name(),
+                lobby.getLobbyCode()
+        );
+    }
+    @GetMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    @AuthorizationRequired
+    public LobbyResponseDTO getLobbyById(@PathVariable Long id) {
+        Lobby lobby = lobbyService.getLobbyById(id);
+        if (lobby == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby with ID " + id + " not found");
+        }
+
+        return new LobbyResponseDTO(
+                lobby.getId(),
+                lobby.getLobbyName(),
+                lobby.getGameMode().name(),
+                lobby.getLobbyCode()
         );
     }
 }

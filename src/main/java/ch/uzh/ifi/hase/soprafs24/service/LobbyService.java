@@ -34,13 +34,21 @@ public class LobbyService {
         return lobbyRepository.findById(id).orElseThrow(
             () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found with id: " + id));
     }
-
     public Lobby getOrCreateLobby() {
-        Lobby lobby = lobbyRepository.findAll().stream().findFirst().orElse(null); // TODO: Change to findByLobbyCode if needed
-        if (lobby == null) {
-            return createLobby("Active lobby", GameMode.CLASSIC);
+        return getOrCreateLobby(null);
+    }
+    public Lobby getOrCreateLobby(Integer lobbyCode) {
+        Lobby lobby = null;
+
+        if (lobbyCode != null) {
+            lobby = lobbyRepository.findByLobbyCode(lobbyCode)
+                    .orElse(null); // nicht orElseThrow – du willst ggf. eine neue Lobby erstellen
         }
-        
+
+        if (lobby == null) {
+            return createLobby("Lobby " + generateLobbyCode(), GameMode.CLASSIC);
+        }
+
         return lobby;
     }
 

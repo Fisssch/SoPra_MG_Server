@@ -179,7 +179,7 @@ public class LobbyControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(json))
                     .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.lobbyId").value(42))
+                    .andExpect(jsonPath("$.id").value(42))
                     .andExpect(jsonPath("$.gameMode").value("CLASSIC"))
                     .andExpect(jsonPath("$.lobbyName").value("TestLobby"));
         }
@@ -205,9 +205,9 @@ public class LobbyControllerTest {
 
                 when(lobbyService.getLobbyByCode(1234)).thenReturn(mockLobby);
 
-                mockMvc.perform(get("/lobby/1234"))
+                mockMvc.perform(get("/lobby/by-code/1234"))
                         .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.lobbyId").value(99))
+                        .andExpect(jsonPath("$.id").value(99))
                         .andExpect(jsonPath("$.lobbyName").value("JoinableLobby"))
                         .andExpect(jsonPath("$.gameMode").value("CLASSIC"));
             }
@@ -216,7 +216,7 @@ public class LobbyControllerTest {
             public void getLobbyByCode_notFound_returns404() throws Exception {
                 when(lobbyService.getLobbyByCode(1234)).thenReturn(null);
 
-                mockMvc.perform(get("/lobby/1234"))
+                mockMvc.perform(get("/lobby/by-code/1234"))
                         .andExpect(status().isNotFound());
             }
         }

@@ -2,8 +2,9 @@ package ch.uzh.ifi.hase.soprafs24.rest.dto;
 
 public class LobbyPostDTO {
     private String lobbyName;
-    private String gameMode; // als String vom Client
+    private String gameMode;
     private Long hostId;
+    private Integer lobbyCode; // ➕ hinzugefügt
 
     public String getLobbyName() {
         return lobbyName;
@@ -27,5 +28,13 @@ public class LobbyPostDTO {
 
     public void setHostId(Long hostId) {
         this.hostId = hostId;
+    }
+
+    public Integer getLobbyCode() {
+        return lobbyCode;
+    }
+
+    public void setLobbyCode(Integer lobbyCode) {
+        this.lobbyCode = lobbyCode;
     }
 }

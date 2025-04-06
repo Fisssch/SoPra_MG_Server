@@ -9,5 +9,7 @@ import java.util.Optional;
 
 @Repository
 public interface LobbyRepository extends CustomMongoRepository<Lobby> {
+
+    Optional<Lobby> findByLobbyName(String lobbyName);
     Optional<Lobby> findByLobbyCode(Integer lobbyCode);
 }
