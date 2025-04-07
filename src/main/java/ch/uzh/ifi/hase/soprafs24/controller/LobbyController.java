@@ -26,12 +26,6 @@ public class LobbyController {
         this.webSocketService = webSocketService;
     }
 
-    @GetMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    @AuthorizationRequired
-    public GetLobbyDTO getOrCreateLobby() {
-        return DTOMapper.INSTANCE.convertEntitytoGetLobbyDTO(lobbyService.getOrCreateLobby());
-    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -193,13 +187,12 @@ public class LobbyController {
         playerUpdateDTO.setRole(updatedPlayer.getRole() != null ? updatedPlayer.getRole().name() : null);
         webSocketService.sendMessage("/topic/lobby" + id + "/players", playerUpdateDTO);
     }
-    @GetMapping("/by-code/{code}")
-    @ResponseStatus(HttpStatus.OK)
+    @GetMapping("/{id}")
     @AuthorizationRequired
-    public LobbyResponseDTO getLobbyByCode(@PathVariable Integer code) {
-        Lobby lobby = lobbyService.getLobbyByCode(code);
+    public LobbyResponseDTO getLobbyById(@PathVariable Long id) {
+        Lobby lobby = lobbyService.getLobbyById(id);
         if (lobby == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby with code " + code + " not found");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found");
         }
 
         return new LobbyResponseDTO(
@@ -209,13 +202,17 @@ public class LobbyController {
                 lobby.getLobbyCode()
         );
     }
-    @GetMapping("/{id}")
-    @ResponseStatus(HttpStatus.OK)
+    @GetMapping
     @AuthorizationRequired
-    public LobbyResponseDTO getLobbyById(@PathVariable Long id) {
-        Lobby lobby = lobbyService.getLobbyById(id);
-        if (lobby == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby with ID " + id + " not found");
+    public LobbyResponseDTO getOrCreateLobby(@RequestParam(required = false) Integer code) {
+        Lobby lobby;
+        if (code != null) {
+            lobby = lobbyService.getLobbyByCode(code);
+            if (lobby == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby with code " + code + " not found");
+            }
+        } else {
+            lobby = lobbyService.getOrCreateLobby();
         }
 
         return new LobbyResponseDTO(

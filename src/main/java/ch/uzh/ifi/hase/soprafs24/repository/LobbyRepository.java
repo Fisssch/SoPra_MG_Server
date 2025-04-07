@@ -10,6 +10,6 @@ import java.util.Optional;
 @Repository
 public interface LobbyRepository extends CustomMongoRepository<Lobby> {
 
-    Optional<Lobby> findByLobbyName(String lobbyName);
+    @Query("{'lobbyCode': ?0}")
     Optional<Lobby> findByLobbyCode(Integer lobbyCode);
 }
