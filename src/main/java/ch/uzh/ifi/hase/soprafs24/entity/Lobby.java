@@ -20,7 +20,7 @@ public class Lobby extends DatabaseEntity {
     private GameMode gameMode;
 
     @DBRef(lazy = true)
-    private List<Player> players = new ArrayList<>();
+    private List<Player> players;
 
     @Indexed(unique = true)
     private Integer lobbyCode;
@@ -63,7 +63,7 @@ public class Lobby extends DatabaseEntity {
     }
 
     public List<Player> getPlayers() {
-        return players;
+        return players == null ? new ArrayList<>() : players;
     }
 
     public void setPlayers(List<Player> players) {

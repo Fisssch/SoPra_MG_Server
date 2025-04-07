@@ -202,7 +202,7 @@ public class LobbyControllerTest {
             mockLobby.setGameMode(GameMode.CLASSIC);
             mockLobby.setLobbyCode(1234);
 
-            when(lobbyService.getLobbyByCode(1234)).thenReturn(mockLobby);
+            when(lobbyService.getOrCreateLobby(1234)).thenReturn(mockLobby);
 
             mockMvc.perform(get("/lobby?code=1234"))
                     .andExpect(status().isOk())
@@ -214,7 +214,7 @@ public class LobbyControllerTest {
 
         @Test
         public void getLobbyByCode_notFound_returns404() throws Exception {
-            when(lobbyService.getLobbyByCode(1234)).thenReturn(null);
+            when(lobbyService.getOrCreateLobby(1234)).thenReturn(null);
 
             mockMvc.perform(get("/lobby?code=1234"))
                     .andExpect(status().isNotFound());
