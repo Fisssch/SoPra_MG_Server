@@ -38,7 +38,7 @@ public class LobbyService {
     public Lobby getOrCreateLobby() {
         Lobby lobby = lobbyRepository.findAll().stream().findFirst().orElse(null); // TODO: Change to findByLobbyCode if needed
         if (lobby == null) {
-            return createLobby("Active lobby", GameMode.CLASSIC);
+            return createLobby("Active lobby", GameMode.CLASSIC); 
         }
         
         return lobby;
