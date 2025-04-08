@@ -34,13 +34,21 @@ public class LobbyService {
         return lobbyRepository.findById(id).orElseThrow(
             () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found with id: " + id));
     }
-
     public Lobby getOrCreateLobby() {
-        Lobby lobby = lobbyRepository.findAll().stream().findFirst().orElse(null); // TODO: Change to findByLobbyCode if needed
-        if (lobby == null) {
-            return createLobby("Active lobby", GameMode.CLASSIC); 
+        return getOrCreateLobby(null);
+    }
+    public Lobby getOrCreateLobby(Integer lobbyCode) {
+        Lobby lobby = null;
+
+        if (lobbyCode != null) {
+            lobby = lobbyRepository.findByLobbyCode(lobbyCode)
+                    .orElse(null); // nicht orElseThrow – du willst ggf. eine neue Lobby erstellen
         }
-        
+
+        if (lobby == null) {
+            return createLobby("Lobby " + generateLobbyCode(), GameMode.CLASSIC);
+        }
+
         return lobby;
     }
 
@@ -81,12 +89,24 @@ public class LobbyService {
     }
 
     public void removePlayerFromLobby(Long lobbyId, Long playerId) {
-        Player player = playerRepository.findById(playerId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found with id: " + playerId));
         Lobby lobby = getLobbyById(lobbyId);
+        if (lobby == null) return;
 
-        lobby.removePlayer(player);
-        playerRepository.delete(player);
-        lobbyRepository.save(lobby);
+        Player player = lobby.getPlayers().stream()
+                .filter(p -> playerId.equals(p.getId()))
+                .findFirst()
+                .orElse(null);
+
+        if (player != null) {
+            lobby.removePlayer(player);
+            playerRepository.delete(player); // remove all players
+        }
+
+        if (lobby.getPlayers().isEmpty()) {
+            lobbyRepository.delete(lobby); // remove Lobby
+        } else {
+            lobbyRepository.save(lobby);
+        }
     }
 
     public Lobby createLobby(String lobbyName, GameMode gameMode) {
@@ -179,6 +199,8 @@ public class LobbyService {
         return lobby.getPlayers().size() >= 4 &&
                 lobby.getPlayers().stream().allMatch(p -> Boolean.TRUE.equals(p.getReady()));
     }
+    public Lobby getLobbyByCode(Integer code) {
+        return lobbyRepository.findByLobbyCode(code).orElse(null);
 
     public Lobby addCustomWord(Long lobbyId, String word){
         Lobby lobby = lobbyRepository.findById(lobbyId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
