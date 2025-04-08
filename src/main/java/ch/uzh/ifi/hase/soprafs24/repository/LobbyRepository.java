@@ -5,8 +5,11 @@ import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 public interface LobbyRepository extends CustomMongoRepository<Lobby> {
+
     @Query("{'lobbyCode': ?0}")
-    Lobby findByLobbyCode(Integer lobbyCode);
+    Optional<Lobby> findByLobbyCode(Integer lobbyCode);
 }

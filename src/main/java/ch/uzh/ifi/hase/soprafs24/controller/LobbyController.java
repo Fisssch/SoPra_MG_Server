@@ -26,12 +26,6 @@ public class LobbyController {
         this.webSocketService = webSocketService;
     }
 
-    @GetMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    @AuthorizationRequired
-    public GetLobbyDTO getOrCreateLobby() {
-        return DTOMapper.INSTANCE.convertEntitytoGetLobbyDTO(lobbyService.getOrCreateLobby());
-    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -49,7 +43,8 @@ public class LobbyController {
         return new LobbyResponseDTO(
                 lobby.getId(),
                 lobby.getLobbyName(),
-                lobby.getGameMode().name()
+                lobby.getGameMode().name(),
+                lobby.getLobbyCode()
         );
     }
 
@@ -192,6 +187,40 @@ public class LobbyController {
         playerUpdateDTO.setRole(updatedPlayer.getRole() != null ? updatedPlayer.getRole().name() : null);
         webSocketService.sendMessage("/topic/lobby" + id + "/players", playerUpdateDTO);
     }
+    @GetMapping("/{id}")
+    @AuthorizationRequired
+    public LobbyResponseDTO getLobbyById(@PathVariable Long id) {
+        Lobby lobby = lobbyService.getLobbyById(id);
+        if (lobby == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found");
+        }
+
+        return new LobbyResponseDTO(
+                lobby.getId(),
+                lobby.getLobbyName(),
+                lobby.getGameMode().name(),
+                lobby.getLobbyCode()
+        );
+    }
+    @GetMapping
+    @AuthorizationRequired
+    public LobbyResponseDTO getOrCreateLobby(@RequestParam(required = false) Integer code) {
+        Lobby lobby;
+        if (code != null) {
+            lobby = lobbyService.getLobbyByCode(code);
+            if (lobby == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby with code " + code + " not found");
+            }
+        } else {
+            lobby = lobbyService.getOrCreateLobby();
+        }
+
+        return new LobbyResponseDTO(
+                lobby.getId(),
+                lobby.getLobbyName(),
+                lobby.getGameMode().name(),
+                lobby.getLobbyCode()
+        );
 
     @PutMapping("/{id}/customWord")
     @ResponseStatus(HttpStatus.NO_CONTENT)

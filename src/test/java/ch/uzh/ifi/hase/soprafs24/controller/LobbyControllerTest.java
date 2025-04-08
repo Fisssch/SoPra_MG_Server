@@ -160,7 +160,6 @@ public class LobbyControllerTest {
         }
     }
 
-
     @Nested
     class LobbyCreation {
 
@@ -170,6 +169,7 @@ public class LobbyControllerTest {
             mockLobby.setId(42L);
             mockLobby.setGameMode(GameMode.CLASSIC);
             mockLobby.setLobbyName("TestLobby");
+            mockLobby.setLobbyCode(1234);
 
             when(lobbyService.createLobby("TestLobby", GameMode.CLASSIC)).thenReturn(mockLobby);
 
@@ -179,7 +179,7 @@ public class LobbyControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(json))
                     .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.lobbyId").value(42))
+                    .andExpect(jsonPath("$.id").value(42))
                     .andExpect(jsonPath("$.gameMode").value("CLASSIC"))
                     .andExpect(jsonPath("$.lobbyName").value("TestLobby"));
         }
@@ -192,6 +192,32 @@ public class LobbyControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(invalidJson))
                     .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        public void getLobbyByCode_returnsLobby() throws Exception {
+            Lobby mockLobby = new Lobby();
+            mockLobby.setId(99L);
+            mockLobby.setLobbyName("JoinableLobby");
+            mockLobby.setGameMode(GameMode.CLASSIC);
+            mockLobby.setLobbyCode(1234);
+
+            when(lobbyService.getLobbyByCode(1234)).thenReturn(mockLobby);
+
+            mockMvc.perform(get("/lobby?code=1234"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(99))
+                    .andExpect(jsonPath("$.lobbyName").value("JoinableLobby"))
+                    .andExpect(jsonPath("$.gameMode").value("CLASSIC"))
+                    .andExpect(jsonPath("$.lobbyCode").value(1234));
+        }
+
+        @Test
+        public void getLobbyByCode_notFound_returns404() throws Exception {
+            when(lobbyService.getLobbyByCode(1234)).thenReturn(null);
+
+            mockMvc.perform(get("/lobby?code=1234"))
+                    .andExpect(status().isNotFound());
         }
     }
 }
