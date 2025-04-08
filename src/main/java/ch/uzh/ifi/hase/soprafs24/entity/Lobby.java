@@ -20,7 +20,7 @@ public class Lobby extends DatabaseEntity {
     private GameMode gameMode;
 
     @DBRef(lazy = true)
-    private List<Player> players;
+    private List<Player> players = new ArrayList<>();
 
     @Indexed(unique = true)
     private Integer lobbyCode;
@@ -78,12 +78,10 @@ public class Lobby extends DatabaseEntity {
     }
 
     public void removePlayer(Player player) {
-        if (this.players == null) {
-            this.players = new ArrayList<>();
+        if (this.players == null || player == null) {
+            return;
         }
-        if (this.players.contains(player)) {
-            this.players.remove(player);
-        }
+        this.players.removeIf(p -> p.getId().equals(player.getId()));
     }
 
     public Integer getLobbyCode() {
