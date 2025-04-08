@@ -132,6 +132,15 @@ public class LobbyService {
         Lobby updatedLobby = getLobbyById(lobbyId); //reload lobby again after player removal 
 
         if (updatedLobby.getPlayers().isEmpty()) {
+
+            //need to also remove teams
+            if (updatedLobby.getRedTeam() != null){
+                teamRepository.delete(updatedLobby.getRedTeam());
+            }
+
+            if (updatedLobby.getBlueTeam() != null){
+                teamRepository.delete(updatedLobby.getBlueTeam());
+            }
             lobbyRepository.delete(updatedLobby); // remove Lobby
         } 
     }
@@ -192,7 +201,7 @@ public class LobbyService {
             if (oldRole == PlayerRole.SPYMASTER) {
                 // If the player was a spymaster, set the spymaster of the team to null
                 Team team = player.getTeam();
-                if (team != null && team.getSpymaster() != null && team.getSpymaster().getId().equals(player.getId())) { //important to work with id here otherwise if statement fails 
+                if (team != null && team.getSpymaster() != null && team.getSpymaster().getId().equals(player.getId())) { //important to work with id here otherwise the if statement fails 
                     team.setSpymaster(null);
                     teamRepository.save(team);
                 }
