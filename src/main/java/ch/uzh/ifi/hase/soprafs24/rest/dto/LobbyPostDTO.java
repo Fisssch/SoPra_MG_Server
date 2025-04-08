@@ -4,7 +4,7 @@ public class LobbyPostDTO {
     private String lobbyName;
     private String gameMode;
     private Long hostId;
-    private Integer lobbyCode; // ➕ hinzugefügt
+    private Integer lobbyCode;
 
     public String getLobbyName() {
         return lobbyName;

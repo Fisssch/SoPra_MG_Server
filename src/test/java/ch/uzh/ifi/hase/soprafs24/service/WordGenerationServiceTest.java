@@ -16,6 +16,7 @@ public class WordGenerationServiceTest {
     public void setup() {
         MockitoAnnotations.openMocks(this);
         wordGenerationService = new WordGenerationService();
+        wordGenerationService.setApiKey("testApiKey");
     }
 
     @Test

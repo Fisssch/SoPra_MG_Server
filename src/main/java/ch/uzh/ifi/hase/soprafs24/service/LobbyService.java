@@ -29,14 +29,7 @@ public class LobbyService {
         this.lobbyRepository = lobbyRepository;
         this.teamRepository = teamRepository;
     }
-
-    public Lobby getLobbyById(Long id) {
-        return lobbyRepository.findById(id).orElseThrow(
-            () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found with id: " + id));
-    }
-    public Lobby getOrCreateLobby() {
-        return getOrCreateLobby(null);
-    }
+    
     public Lobby getOrCreateLobby(Integer lobbyCode) {
         Lobby lobby = null;
 
@@ -52,61 +45,9 @@ public class LobbyService {
         return lobby;
     }
 
-    public Lobby setGameMode(Long id, GameMode gameMode) {
-        Lobby lobby = getLobbyById(id);
-        lobby.setGameMode(gameMode);
-        lobbyRepository.save(lobby);
-        return lobby;
-    }
-
-    public Player addPlayerToLobby(Long lobbyId, Long playerId) {
-        Player player = playerRepository.findById(playerId).orElse(new Player(playerId));
-        Lobby lobby = getLobbyById(lobbyId);
-        if (lobby == null) return null;
-
-        long redCount = lobby.getPlayers().stream()
-                .filter(p -> TeamColor.RED.equals(p.getTeam().getColor()))
-                .count();
-
-        long blueCount = lobby.getPlayers().stream()
-                .filter(p -> TeamColor.BLUE.equals(p.getTeam().getColor()))
-                .count();
-
-        Team assignedTeam = redCount <= blueCount ? lobby.getRedTeam() : lobby.getBlueTeam();
-        player.setTeam(assignedTeam);
-
-        if (assignedTeam.getSpymaster() == null) {
-            player.setRole(PlayerRole.SPYMASTER);
-            assignedTeam.setSpymaster(player);
-        } else {
-            player.setRole(PlayerRole.FIELD_OPERATIVE);
-        }
-        
-        playerRepository.save(player);
-        lobby.addPlayer(player);
-        lobbyRepository.save(lobby);
-        return player;
-    }
-
-    public void removePlayerFromLobby(Long lobbyId, Long playerId) {
-        Lobby lobby = getLobbyById(lobbyId);
-        if (lobby == null) return;
-
-        Player player = lobby.getPlayers().stream()
-                .filter(p -> playerId.equals(p.getId()))
-                .findFirst()
-                .orElse(null);
-
-        if (player != null) {
-            lobby.removePlayer(player);
-            playerRepository.delete(player); // remove all players
-        }
-
-        if (lobby.getPlayers().isEmpty()) {
-            lobbyRepository.delete(lobby); // remove Lobby
-        } else {
-            lobbyRepository.save(lobby);
-        }
+    public Lobby getLobbyById(Long id) {
+        return lobbyRepository.findById(id).orElseThrow(
+            () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found with id: " + id));
     }
 
     public Lobby createLobby(String lobbyName, GameMode gameMode) {
@@ -134,8 +75,64 @@ public class LobbyService {
         return lobbyRepository.save(lobby);
     }
 
-    private int generateLobbyCode() {
-        return (int) (Math.random() * 9000) + 1000;
+    public Lobby setGameMode(Long id, GameMode gameMode) {
+        Lobby lobby = getLobbyById(id);
+        lobby.setGameMode(gameMode);
+        lobbyRepository.save(lobby);
+        return lobby;
+    }
+
+    public Player addPlayerToLobby(Long lobbyId, Long playerId) {
+        Player player = playerRepository.findById(playerId).orElse(new Player(playerId));
+        Lobby lobby = getLobbyById(lobbyId);
+        if (lobby == null) return null;
+
+        long redCount = lobby.getPlayers().stream()
+                .filter(p -> TeamColor.RED.equals(p.getTeam().getColor()))
+                .count();
+
+        long blueCount = lobby.getPlayers().stream()
+                .filter(p -> TeamColor.BLUE.equals(p.getTeam().getColor()))
+                .count();
+
+        Team assignedTeam = redCount <= blueCount ? lobby.getRedTeam() : lobby.getBlueTeam();
+        player.setTeam(assignedTeam);
+        playerRepository.save(player);
+
+        if (assignedTeam.getSpymaster() == null) {
+            player.setRole(PlayerRole.SPYMASTER);
+            assignedTeam.setSpymaster(player);
+        } else {
+            player.setRole(PlayerRole.FIELD_OPERATIVE);
+        }
+        
+        playerRepository.save(player);
+        lobby.addPlayer(player);
+        teamRepository.save(assignedTeam);
+        lobbyRepository.save(lobby);
+        return player;
+    }
+
+    public void removePlayerFromLobby(Long lobbyId, Long playerId) {
+        Player player = playerRepository.findById(playerId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found with id: " + playerId));
+        Lobby lobby = getLobbyById(lobbyId);
+
+        if (player.getRole() == PlayerRole.SPYMASTER) {
+            Team team = player.getTeam();
+            if (team != null) {
+                team.setSpymaster(null);
+                teamRepository.save(team);
+            }
+        }
+
+        lobby.removePlayer(player);
+        playerRepository.delete(player); // remove all players
+
+        if (lobby.getPlayers().isEmpty()) {
+            lobbyRepository.delete(lobby); // remove Lobby
+        } else {
+            lobbyRepository.save(lobby);
+        }
     }
 
     public Player changePlayerTeam(Long lobbyId, Long playerId, String color) {
@@ -143,25 +140,62 @@ public class LobbyService {
 
         Player player = playerRepository.findById(playerId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found with id: " + playerId));
 
+        if (player.getRole() == PlayerRole.SPYMASTER) {
+            Team team = player.getTeam();
+            if (team != null) {
+                team.setSpymaster(null);
+                teamRepository.save(team);
+            }
+        }
+        Team newTeam;
         if ("red".equalsIgnoreCase(color)) {
-            lobby.assignPlayerToTeam(player, lobby.getRedTeam());
+            newTeam = lobby.getRedTeam();
         } else if ("blue".equalsIgnoreCase(color)) {
-            lobby.assignPlayerToTeam(player, lobby.getBlueTeam());
+            newTeam = lobby.getBlueTeam();
         } else {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid team color: " + color);
         }
+        lobby.assignPlayerToTeam(player, newTeam);
+        // If the player is a spymaster but the other team already has a spymaster set him to field operative, otherwise assign him to spymaster of new team
+        if (player.getRole() == PlayerRole.SPYMASTER) {
+            if (newTeam.getSpymaster() == null) {
+                newTeam.setSpymaster(player);
+                teamRepository.save(newTeam);
+            }
+            else
+                player.setRole(PlayerRole.FIELD_OPERATIVE);
+        }
 
         playerRepository.save(player);
+        lobbyRepository.save(lobby);
         return player;
     }
 
     public Player changePlayerRole(Long lobbyId, Long playerId, String roleStr) {
         Player player = playerRepository.findById(playerId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found with id: " + playerId));
 
+        PlayerRole oldRole = player.getRole();
         PlayerRole role;
         try {
             role = PlayerRole.valueOf(roleStr.toUpperCase().replace(" ", "_"));
             player.setRole(role);
+            if (role == PlayerRole.SPYMASTER) {
+                // If the player is set to spymaster, set the spymaster of the team to this player
+                Team team = player.getTeam();
+                if (team != null) {
+                    if (team.getSpymaster() != null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Team already has a spymaster");
+                    team.setSpymaster(player);
+                    teamRepository.save(team);
+                }
+            } 
+            if (oldRole == PlayerRole.SPYMASTER) {
+                // If the player was a spymaster, set the spymaster of the team to null
+                Team team = player.getTeam();
+                if (team != null && team.getSpymaster() != null && team.getSpymaster().equals(player)) {
+                    team.setSpymaster(null);
+                    teamRepository.save(team);
+                }
+            }
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid role: " + roleStr);
         }
@@ -185,22 +219,14 @@ public class LobbyService {
         Player player = playerRepository.findById(playerId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found with id: " + playerId));
 
         player.setReady(ready);
+        playerRepository.save(player);
 
         if (shouldStartGame(lobby)) {
             lobby.setGameStarted(true);
             websocketService.sendMessage("/topic/lobby/" + lobbyId + "/start", true);
         }
-
-        playerRepository.save(player);
         return player;
     }
-
-    public boolean shouldStartGame(Lobby lobby) {
-        return lobby.getPlayers().size() >= 4 &&
-                lobby.getPlayers().stream().allMatch(p -> Boolean.TRUE.equals(p.getReady()));
-    }
-    public Lobby getLobbyByCode(Integer code) {
-        return lobbyRepository.findByLobbyCode(code).orElse(null);
 
     public Lobby addCustomWord(Long lobbyId, String word){
         Lobby lobby = lobbyRepository.findById(lobbyId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
@@ -215,5 +241,18 @@ public class LobbyService {
 
         lobby.addCustomWord(word);
         return lobbyRepository.save(lobby);
+    }
+
+    public boolean shouldStartGame(Lobby lobby) {
+        return lobby.getPlayers().size() >= 4 &&
+                lobby.getRedTeam().getSpymaster() != null &&
+                lobby.getBlueTeam().getSpymaster() != null &&
+                lobby.getRedTeam().getPlayers().size() >= 2 &&
+                lobby.getBlueTeam().getPlayers().size() >= 2 &&
+                lobby.getPlayers().stream().allMatch(p -> Boolean.TRUE.equals(p.getReady()));
+    }
+
+    private int generateLobbyCode() {
+        return (int) (Math.random() * 9000) + 1000;
     }
 }

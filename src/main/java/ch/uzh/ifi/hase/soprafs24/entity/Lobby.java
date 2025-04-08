@@ -20,7 +20,7 @@ public class Lobby extends DatabaseEntity {
     private GameMode gameMode;
 
     @DBRef(lazy = true)
-    private List<Player> players = new ArrayList<>();
+    private List<Player> players;
 
     @Indexed(unique = true)
     private Integer lobbyCode;
@@ -63,7 +63,7 @@ public class Lobby extends DatabaseEntity {
     }
 
     public List<Player> getPlayers() {
-        return players;
+        return players == null ? new ArrayList<>() : players;
     }
 
     public void setPlayers(List<Player> players) {
@@ -100,6 +100,7 @@ public class Lobby extends DatabaseEntity {
 
     public void setRedTeam(Team redTeam) {
         this.redTeam = redTeam;
+        redTeam.setLobby(this);
     }
 
     public Team getBlueTeam() {
@@ -108,6 +109,7 @@ public class Lobby extends DatabaseEntity {
 
     public void setBlueTeam(Team blueTeam) {
         this.blueTeam = blueTeam;
+        blueTeam.setLobby(this);
     }
 
     public List<Player> getPlayersByTeam(Team team) {
@@ -151,6 +153,10 @@ public class Lobby extends DatabaseEntity {
             return;
         }
         
+        if (players == null) {
+            players = new ArrayList<>();
+        }
+
         // Add player to lobby if not already present
         if (!players.contains(player)) {
             this.addPlayer(player);

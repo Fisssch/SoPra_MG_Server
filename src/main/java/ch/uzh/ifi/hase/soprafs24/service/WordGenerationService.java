@@ -24,7 +24,7 @@ import ch.uzh.ifi.hase.soprafs24.api.apiToken;
 public class WordGenerationService {
   private final Logger log = LoggerFactory.getLogger(WordGenerationService.class);
     
-  private static final String API_KEY = apiToken.getApiToken();
+  private static String API_KEY = apiToken.getApiToken();
   private static final String ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + API_KEY;
 
   //fallback method to version without theme 
@@ -110,5 +110,9 @@ public class WordGenerationService {
     }
     log.error("Exceed maximum retries"); 
     return List.of();
+  }
+
+  public void setApiKey(String apiKey) {
+    API_KEY = apiKey; 
   }
 }

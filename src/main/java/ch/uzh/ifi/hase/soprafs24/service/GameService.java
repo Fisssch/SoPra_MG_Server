@@ -73,14 +73,14 @@ public class GameService {
         game.setStatus("playing");
         game.setWinningTeam(null);
         game.setGameMode(gameMode);
-        game = gameRepository.save(game); 
+        gameRepository.save(game); 
 
         List <String> words = generateWords(id, theme); 
         game.setWords(words);
         List <Card> board = assignColorsToWords(words, startingTeam);
         game.setBoard(board);
 
-        game = gameRepository.save(game);
+        gameRepository.save(game);
     }
     return game; 
     }
@@ -93,7 +93,7 @@ public class GameService {
 
     /*
      * Returns a tuple with a bool which indicates if the game is over and a TeamColor which team has either won or whose turn it is next.
-     */
+    */
     public Map.Entry<Boolean, TeamColor> makeGuess(Long id, TeamColor teamColor, String wordStr, User user) {
         Game game = gameRepository.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
