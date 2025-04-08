@@ -2,9 +2,12 @@ package ch.uzh.ifi.hase.soprafs24.service;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -209,18 +212,40 @@ public class GameService {
         }
 
     public List<String> generateWords(Long id, String theme){
-        Game game = gameRepository.findById(id)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game with id " + id + " not found."));
+        Game game = gameRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game with id " + id + " not found."));
+        
         if (game.getWords() != null && !game.getWords().isEmpty()){
             return game.getWords(); 
         }
-        List<String> words;
-        if (theme == null || theme.equalsIgnoreCase("default")){
-            words = wordGenerationService.getWordsFromApi();
-        } else {
-            words = wordGenerationService.getWordsFromApi(theme);
+
+        Lobby lobby = lobbyRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
+        List<String> finalWords = new ArrayList<>();
+        
+        if (lobby.getCustomWords() != null && lobby.getGameMode() == GameMode.OWN_WORDS) { 
+          for (String word : lobby.getCustomWords()){
+            String upper = word.toUpperCase();
+            if (!finalWords.contains(upper)){
+                finalWords.add(upper); 
+            }
+          }
         }
-        return words; 
+        int needed = 25 - finalWords.size(); 
+        if(needed > 0) {
+            List<String> additional = theme == null || theme.equalsIgnoreCase("default") ?
+            wordGenerationService.getWordsFromApi() : wordGenerationService.getWordsFromApi(theme); //if theme is missing or default call getWordsFromApi() else getWordsFromApi(theme)
+
+            for (String w : additional){
+              String upper = w.toUpperCase();
+              if (!finalWords.contains(upper)){
+                finalWords.add(upper);
+                if (finalWords.size() == 25) break;
+              }
+              
+            }
+        }
+        game.setWords(finalWords);
+        gameRepository.save(game);
+        return finalWords;
     }
 
     private Card findWord(List<Card> words, String word) {

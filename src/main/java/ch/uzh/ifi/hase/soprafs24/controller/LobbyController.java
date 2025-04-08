@@ -221,5 +221,12 @@ public class LobbyController {
                 lobby.getGameMode().name(),
                 lobby.getLobbyCode()
         );
+
+    @PutMapping("/{id}/customWord")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @AuthorizationRequired
+    public void addCustomWord(@PathVariable Long id, @RequestBody CustomWordDTO wordDTO){
+        Lobby updatedLobby = lobbyService.addCustomWord(id, wordDTO.getWord());
+        webSocketService.sendMessage("/topic/lobby" + id + "/customWords", updatedLobby.getCustomWords());
     }
 }
