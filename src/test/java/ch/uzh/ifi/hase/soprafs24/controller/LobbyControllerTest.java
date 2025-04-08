@@ -14,14 +14,18 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.server.ResponseStatusException;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+import org.apache.coyote.Response;
 
 @WebMvcTest(LobbyController.class)
 public class LobbyControllerTest {
@@ -214,7 +218,7 @@ public class LobbyControllerTest {
 
         @Test
         public void getLobbyByCode_notFound_returns404() throws Exception {
-            when(lobbyService.getOrCreateLobby(1234)).thenReturn(null);
+            when(lobbyService.getOrCreateLobby(1234)).thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
 
             mockMvc.perform(get("/lobby?code=1234"))
                     .andExpect(status().isNotFound());

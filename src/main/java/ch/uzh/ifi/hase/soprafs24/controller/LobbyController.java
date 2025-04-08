@@ -27,10 +27,11 @@ public class LobbyController {
     }
 
     @GetMapping
+    @ResponseStatus(HttpStatus.OK)
     @AuthorizationRequired
     public LobbyResponseDTO getOrCreateLobby(@RequestParam(required = false) Integer code) {
         Lobby lobby;
-        lobby = lobbyService.getOrCreateLobby(null);
+        lobby = lobbyService.getOrCreateLobby(code);
 
         return new LobbyResponseDTO(
                 lobby.getId(),
@@ -62,6 +63,7 @@ public class LobbyController {
     }
 
     @GetMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
     @AuthorizationRequired
     public LobbyResponseDTO getLobbyById(@PathVariable Long id) {
         Lobby lobby = lobbyService.getLobbyById(id);

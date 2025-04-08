@@ -100,6 +100,7 @@ public class Lobby extends DatabaseEntity {
 
     public void setRedTeam(Team redTeam) {
         this.redTeam = redTeam;
+        redTeam.setLobby(this);
     }
 
     public Team getBlueTeam() {
@@ -108,6 +109,7 @@ public class Lobby extends DatabaseEntity {
 
     public void setBlueTeam(Team blueTeam) {
         this.blueTeam = blueTeam;
+        blueTeam.setLobby(this);
     }
 
     public List<Player> getPlayersByTeam(Team team) {
@@ -151,6 +153,10 @@ public class Lobby extends DatabaseEntity {
             return;
         }
         
+        if (players == null) {
+            players = new ArrayList<>();
+        }
+
         // Add player to lobby if not already present
         if (!players.contains(player)) {
             this.addPlayer(player);

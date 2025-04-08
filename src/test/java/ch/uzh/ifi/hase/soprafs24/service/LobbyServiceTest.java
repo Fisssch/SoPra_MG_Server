@@ -100,24 +100,52 @@ public class LobbyServiceTest {
         @Test
         public void gameStarts_whenAllReady_andAtLeastFour() {
             Lobby lobby = new Lobby();
+            Team redTeam = new Team();
+            redTeam.setColor(TeamColor.RED);
+            redTeam.setId(1L);
+            Team blueTeam = new Team();
+            blueTeam.setColor(TeamColor.BLUE);
+            blueTeam.setId(2L);
+            blueTeam.setSpymaster(new Player());
+            redTeam.setSpymaster(new Player());
+            lobby.setRedTeam(redTeam);
+            lobby.setBlueTeam(blueTeam);
             for (int i = 0; i < 4; i++) {
                 Player p = new Player();
                 p.setReady(true);
-                lobby.addPlayer(p);
+                if (i < 2) {
+                    lobby.assignPlayerToTeam(p, redTeam);
+                } else {
+                    lobby.assignPlayerToTeam(p, blueTeam);
+                }
             }
-
+            
             assertTrue(lobbyService.shouldStartGame(lobby));
         }
 
         @Test
         public void gameDoesNotStart_whenNotAllReady() {
             Lobby lobby = new Lobby();
+            Team redTeam = new Team();
+            redTeam.setColor(TeamColor.RED);
+            redTeam.setId(1L);
+            Team blueTeam = new Team();
+            blueTeam.setColor(TeamColor.BLUE);
+            blueTeam.setId(2L);
+            blueTeam.setSpymaster(new Player());
+            redTeam.setSpymaster(new Player());
             for (int i = 0; i < 4; i++) {
                 Player p = new Player();
                 p.setReady(i < 3); // last one is not ready
-                lobby.addPlayer(p);
+                if (i < 2) {
+                    lobby.assignPlayerToTeam(p, redTeam);
+                } else {
+                    lobby.assignPlayerToTeam(p, blueTeam);
+                }
             }
-
+            lobby.setRedTeam(redTeam);
+            lobby.setBlueTeam(blueTeam);
+            
             assertFalse(lobbyService.shouldStartGame(lobby));
         }
 
