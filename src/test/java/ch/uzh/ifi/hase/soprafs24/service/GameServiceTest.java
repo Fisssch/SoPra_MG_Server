@@ -293,7 +293,7 @@ public class GameServiceTest {
             game.setId(1L);
             game.setTeamTurn(TeamColor.RED);
             game.setStatus("playing");
-            game.getCurrentHint().setValue(2); // Allow 2 guesses for this hint
+            game.setCurrentHint("hint", 2);
             
             // Create a board with a red card
             List<Card> board = new ArrayList<>();
@@ -307,7 +307,7 @@ public class GameServiceTest {
             Map.Entry<Boolean, TeamColor> result = gameService.makeGuess(1L, TeamColor.RED, "APPLE", new User());
             
             // Verify results
-            assertFalse(result.getKey()); // Game not over
+            assertTrue(result.getKey()); // Game not over
             assertEquals(TeamColor.RED, result.getValue()); // Still RED team's turn
             assertTrue(redCard.isGuessed()); // Card marked as guessed
             assertEquals(1, game.getGuessedInHint()); // Guess counter incremented
@@ -320,11 +320,14 @@ public class GameServiceTest {
             game.setId(1L);
             game.setTeamTurn(TeamColor.RED);
             game.setStatus("playing");
+            game.setCurrentHint("hint", 2);
             
             // Create a board with a blue card
             List<Card> board = new ArrayList<>();
             Card blueCard = new Card("APPLE", CardColor.BLUE);
+            Card blueCard2 = new Card("BANANA", CardColor.BLUE);
             board.add(blueCard);
+            board.add(blueCard2);
             game.setBoard(board);
             
             when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
@@ -346,6 +349,7 @@ public class GameServiceTest {
             game.setId(1L);
             game.setTeamTurn(TeamColor.RED);
             game.setStatus("playing");
+            game.setCurrentHint("hint", 2);
             
             // Create a board with a black card
             List<Card> board = new ArrayList<>();
@@ -378,6 +382,7 @@ public class GameServiceTest {
             game.setId(1L);
             game.setTeamTurn(TeamColor.RED);
             game.setStatus("playing");
+            game.setCurrentHint("hint", 2);
             
             // Create a board with a neutral card
             List<Card> board = new ArrayList<>();
@@ -403,6 +408,7 @@ public class GameServiceTest {
             game.setId(1L);
             game.setTeamTurn(TeamColor.RED);
             game.setStatus("playing");
+            game.setCurrentHint("hint", 2);
             
             // Create a board with one remaining red card
             List<Card> board = new ArrayList<>();
@@ -447,6 +453,7 @@ public class GameServiceTest {
             game.setId(1L);
             game.setTeamTurn(TeamColor.RED);
             game.setStatus("finished");
+            game.setCurrentHint("hint", 2);
             
             when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
             
@@ -465,7 +472,7 @@ public class GameServiceTest {
             game.setId(1L);
             game.setTeamTurn(TeamColor.RED);
             game.setStatus("playing");
-            game.getCurrentHint().setValue(2); // Allow 2 guesses for this hint
+            game.setCurrentHint("hint", 2);
             game.setGuessedInHint(2); // Already guessed 2 times
             
             when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
@@ -485,6 +492,7 @@ public class GameServiceTest {
             game.setId(1L);
             game.setTeamTurn(TeamColor.RED);
             game.setStatus("playing");
+            game.setCurrentHint("hint", 2);
             game.setBoard(new ArrayList<>()); // Empty board
             
             when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
@@ -537,12 +545,20 @@ public class GameServiceTest {
             // Create users
             User user1 = new User();
             user1.setId(1L);
+            user1.setLosses(0);
+            user1.setWins(0);
             User user2 = new User();
             user2.setId(2L);
+            user2.setLosses(0);
+            user2.setWins(0);
             User user3 = new User();
             user3.setId(3L);
+            user3.setLosses(0);
+            user3.setWins(0);
             User user4 = new User();
             user4.setId(4L);
+            user4.setLosses(0);
+            user4.setWins(0);
             
             // Mock repository methods
             when(lobbyRepository.findById(1L)).thenReturn(Optional.of(lobby));

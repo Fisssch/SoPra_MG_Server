@@ -486,6 +486,7 @@ public class LobbyServiceTest {
             // Setup
             Lobby lobby = new Lobby();
             lobby.setId(1L);
+            lobby.setGameMode(GameMode.OWN_WORDS);
             when(lobbyRepository.findById(1L)).thenReturn(Optional.of(lobby));
             
             // Act
@@ -502,6 +503,7 @@ public class LobbyServiceTest {
             // Setup
             Lobby lobby = new Lobby();
             lobby.setId(1L);
+            lobby.setGameMode(GameMode.OWN_WORDS);
             List<String> words = new ArrayList<>();
             words.add("TEST");
             lobby.setCustomWords(words);

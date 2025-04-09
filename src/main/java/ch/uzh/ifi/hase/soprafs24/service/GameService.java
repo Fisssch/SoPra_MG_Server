@@ -97,6 +97,9 @@ public class GameService {
         if (game.getTeamTurn() != teamColor) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "It's not your turn");
         }
+        if (game.getCurrentHint() == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You have to give a hint before guessing");
+        }
         if (game.getGuessedInHint() >= game.getCurrentHint().getValue()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You have already guessed the maximum number of words for this hint");
         }

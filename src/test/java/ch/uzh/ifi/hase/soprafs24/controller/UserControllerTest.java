@@ -87,6 +87,7 @@ public class UserControllerTest {
         user.setUsername("testUsername");
         user.setPassword("testPassword");
         user.setToken("1");
+        user.setOnlineStatus(UserStatus.ONLINE);
 
         UserPostDTO userPostDTO = new UserPostDTO();
         userPostDTO.setUsername("testUsername");
@@ -183,7 +184,7 @@ public class UserControllerTest {
         user.setLosses(3);
 
         when(userService.extractToken("Bearer " + token)).thenReturn(token);
-        doNothing().when(userService).validateToken(token);
+        when(userService.validateToken(token)).thenReturn(user);
         when(userService.getUserById(userId)).thenReturn(user);
 
         // when/then

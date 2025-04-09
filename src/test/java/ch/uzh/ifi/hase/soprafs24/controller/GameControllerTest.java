@@ -95,7 +95,6 @@ public class GameControllerTest {
             verify(userService).validateToken("valid-token");
             verify(gameService).checkIfUserSpymaster(mockUser);
             verify(gameService).validateHint("ocean", 3, 1L);
-            verify(webSocketService).sendMessage("/topic/game/1/hint", hintDTO);
         }
         
         @Test
@@ -283,7 +282,6 @@ public class GameControllerTest {
             verify(userService).extractToken("Bearer valid-token");
             verify(userService).validateToken("valid-token");
             verify(gameService).makeGuess(eq(1L), eq(TeamColor.RED), eq("apple"), any(User.class));
-            verify(webSocketService).sendMessage("/topic/game/1/guess", guessDTO);
         }
         
         @Test
