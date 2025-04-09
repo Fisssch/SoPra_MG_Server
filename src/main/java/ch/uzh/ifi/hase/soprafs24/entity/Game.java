@@ -20,7 +20,7 @@ public class Game extends DatabaseEntity {
     private GameMode gameMode;
     private String currentHint;
     private Integer wordCount;
-    private Integer guessedInHint;
+    private Integer guessedInHint = 0;
 
     public GameMode getGameMode(){
         return gameMode;
