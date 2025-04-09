@@ -241,6 +241,10 @@ public class LobbyService {
     public Lobby addCustomWord(Long lobbyId, String word){
         Lobby lobby = lobbyRepository.findById(lobbyId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
 
+        if (lobby.getGameMode() != GameMode.OWN_WORDS){
+            throw new ResponseStatusException((HttpStatus.BAD_REQUEST), "Can't add custom words unless game mode = OWN_WORDS"); 
+        }
+
         if (word == null || word.trim().isEmpty() || word.contains(" ")){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid word"); 
         }

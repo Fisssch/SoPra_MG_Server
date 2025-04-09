@@ -226,4 +226,18 @@ public class LobbyController {
         Lobby updatedLobby = lobbyService.addCustomWord(id, wordDTO.getWord());
         webSocketService.sendMessage("/topic/lobby" + id + "/customWords", updatedLobby.getCustomWords());
     }
+
+    @GetMapping("/{id}/players")
+    @ResponseStatus(HttpStatus.OK)
+    @AuthorizationRequired
+    public LobbyPlayerStatusDTO countPlayersLobby(@PathVariable Long id) {
+        Lobby lobby = lobbyService.getLobbyById(id);
+
+        int totalPlayers = lobby.getPlayers().size();
+        int readyPlayers = (int) lobby.getPlayers().stream()
+                                .filter(player -> Boolean.TRUE.equals(player.getReady()))
+                                .count(); //just count the players that have ready == true 
+
+        return new LobbyPlayerStatusDTO(totalPlayers, readyPlayers);
+}
 }
