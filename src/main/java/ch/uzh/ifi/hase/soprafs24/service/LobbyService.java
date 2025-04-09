@@ -35,7 +35,7 @@ public class LobbyService {
 
         if (lobbyCode != null) {
             lobby = lobbyRepository.findByLobbyCode(lobbyCode)
-                    .orElse(null); // nicht orElseThrow – du willst ggf. eine neue Lobby erstellen
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby with code " + lobbyCode + " not found"));
         }
 
         if (lobby == null) {
@@ -126,13 +126,23 @@ public class LobbyService {
         }
 
         lobby.removePlayer(player);
+        lobbyRepository.save(lobby);
         playerRepository.delete(player); // remove all players
 
-        if (lobby.getPlayers().isEmpty()) {
-            lobbyRepository.delete(lobby); // remove Lobby
-        } else {
-            lobbyRepository.save(lobby);
-        }
+        Lobby updatedLobby = getLobbyById(lobbyId); //reload lobby again after player removal 
+
+        if (updatedLobby.getPlayers().isEmpty()) {
+
+            //need to also remove teams
+            if (updatedLobby.getRedTeam() != null){
+                teamRepository.delete(updatedLobby.getRedTeam());
+            }
+
+            if (updatedLobby.getBlueTeam() != null){
+                teamRepository.delete(updatedLobby.getBlueTeam());
+            }
+            lobbyRepository.delete(updatedLobby); // remove Lobby
+        } 
     }
 
     public Player changePlayerTeam(Long lobbyId, Long playerId, String color) {
@@ -191,7 +201,7 @@ public class LobbyService {
             if (oldRole == PlayerRole.SPYMASTER) {
                 // If the player was a spymaster, set the spymaster of the team to null
                 Team team = player.getTeam();
-                if (team != null && team.getSpymaster() != null && team.getSpymaster().equals(player)) {
+                if (team != null && team.getSpymaster() != null && team.getSpymaster().getId().equals(player.getId())) { //important to work with id here otherwise the if statement fails 
                     team.setSpymaster(null);
                     teamRepository.save(team);
                 }
