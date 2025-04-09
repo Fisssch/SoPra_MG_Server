@@ -74,17 +74,13 @@ public class GameService {
         game.setGameMode(gameMode);
 
         try {
-            System.out.println("hello");
             List <String> words = generateWords(game, theme); 
             game.setWords(words);
-            System.out.println("Generating words...");
 
             List <Card> board = assignColorsToWords(words, startingTeam);
             game.setBoard(board);
-            System.out.println("Assigning colors to words...");
 
             gameRepository.save(game);
-            System.out.println("started game successfully");
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to create a new game");
         }

@@ -9,6 +9,7 @@ import ch.uzh.ifi.hase.soprafs24.entity.Team;
 import ch.uzh.ifi.hase.soprafs24.service.LobbyService;
 import ch.uzh.ifi.hase.soprafs24.service.WebsocketService;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,10 +21,14 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.server.ResponseStatusException;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+import java.util.Arrays;
 
 import org.apache.coyote.Response;
 
@@ -38,6 +43,15 @@ public class LobbyControllerTest {
 
     @MockBean
     private WebsocketService websocketService;
+
+    private Lobby dummyLobby;
+
+    @BeforeEach
+    public void setup() {
+        dummyLobby = new Lobby();
+        dummyLobby.setId(1L);
+        dummyLobby.setCustomWords(Arrays.asList("custom1", "custom2", "custom3"));
+    }
 
     @Nested
     class PlayerJoining {
@@ -222,6 +236,85 @@ public class LobbyControllerTest {
 
             mockMvc.perform(get("/lobby?code=1234"))
                     .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    class CustomWordsHandling {
+
+        @Test
+        public void getCustomWords_validRequest_returnsWords() throws Exception {
+            Lobby dummyLobby = new Lobby();
+            dummyLobby.setCustomWords(Arrays.asList("House", "Dog"));
+
+            when(lobbyService.getLobbyById(1L)).thenReturn(dummyLobby);
+
+            mockMvc.perform(get("/lobby/1/customWords"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0]").value("House"))
+                    .andExpect(jsonPath("$[1]").value("Dog"))
+                    .andExpect(jsonPath("$.length()").value(2)); 
+        }
+
+        @Test
+        public void getCustomWords_invalidLobby_returnsNotFound() throws Exception {
+            when(lobbyService.getLobbyById(1L)).thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
+
+            mockMvc.perform(get("/lobby/1/customWords"))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        public void countPlayersLobby_validRequest_returnsPlayerStatus() throws Exception {
+            dummyLobby.setPlayers(Arrays.asList(createPlayer(true), createPlayer(false), createPlayer(true)));
+            when(lobbyService.getLobbyById(1L)).thenReturn(dummyLobby);
+
+            mockMvc.perform(get("/lobby/1/players")
+                    .header("Authorization", "Bearer validToken"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.totalPlayers").value(3))
+                    .andExpect(jsonPath("$.readyPlayers").value(2));
+        }
+
+        @Test
+        public void countPlayersLobby_invalidLobby_returnsNotFound() throws Exception {
+            when(lobbyService.getLobbyById(99L)).thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+            mockMvc.perform(get("/lobby/99/players")
+                    .header("Authorization", "Bearer validToken"))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        public void addCustomWord_validRequest_returnsNoContent() throws Exception {
+            when(lobbyService.addCustomWord(eq(1L), eq("NewWord"))).thenReturn(dummyLobby);
+            doNothing().when(websocketService).sendMessage(anyString(), any());
+
+            mockMvc.perform(put("/lobby/1/customWord")
+                    .header("Authorization", "Bearer validToken")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"word\": \"NewWord\"}"))
+                    .andExpect(status().isNoContent());
+        }
+
+        @Test
+        public void addCustomWord_invalidLobby_returnsNotFound() throws Exception {
+            when(lobbyService.addCustomWord(eq(99L), anyString()))
+                    .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+            String json = "{ \"word\": \"Tree\" }";
+
+            mockMvc.perform(put("/lobby/99/customWord")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(json))
+                    .andExpect(status().isNotFound());
+        }
+
+        //helper method to create player 
+        private Player createPlayer(boolean ready) {
+            Player player = new Player();
+            player.setReady(ready);
+            return player;
         }
     }
 }

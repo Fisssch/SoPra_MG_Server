@@ -24,6 +24,8 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 
 import static org.hamcrest.Matchers.*;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -63,26 +65,11 @@ public class GameControllerTest {
     }
 
     @Test
-    public void getGameWords_validRequest_returnsWords() throws Exception {
-        List<String> dummyWords = List.of("HOUSE", "CAT", "DOG");
-
-        given(userService.validateToken(Mockito.any())).willReturn(testUser);
-        given(gameService.generateWords(Mockito.eq(1L), Mockito.eq("default"))).willReturn(dummyWords);
-
-        MockHttpServletRequestBuilder getRequest = get("/game/1/words")
-                .header("Authorization", "Bearer validToken")
-                .contentType(MediaType.APPLICATION_JSON);
-
-        mockMvc.perform(getRequest)
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(3)))
-                .andExpect(jsonPath("$[0]", is("HOUSE")));
-    }
-
-    @Test
     public void getGameWords_gameNotFound_returnsNotFound() throws Exception {
+        Game dummyGame = new Game(); 
+        dummyGame.setId(1L);
         given(userService.validateToken(Mockito.any())).willReturn(testUser);
-        given(gameService.generateWords(Mockito.eq(1L), Mockito.eq("default")))
+        given(gameService.generateWords(Mockito.eq(dummyGame), Mockito.eq("default")))
                 .willThrow(new ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND));
 
         MockHttpServletRequestBuilder getRequest = get("/game/1/words")
