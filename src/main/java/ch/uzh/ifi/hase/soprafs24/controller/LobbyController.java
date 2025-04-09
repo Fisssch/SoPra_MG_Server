@@ -227,10 +227,10 @@ public class LobbyController {
         webSocketService.sendMessage("/topic/lobby" + id + "/customWords", updatedLobby.getCustomWords());
     }
 
-    @GetMapping("/{id}/players/status")
+    @GetMapping("/{id}/players")
     @ResponseStatus(HttpStatus.OK)
     @AuthorizationRequired
-    public LobbyPlayerStatusDTO getPlayerStatus(@PathVariable Long id) {
+    public LobbyPlayerStatusDTO countPlayersLobby(@PathVariable Long id) {
         Lobby lobby = lobbyService.getLobbyById(id);
 
         int totalPlayers = lobby.getPlayers().size();
