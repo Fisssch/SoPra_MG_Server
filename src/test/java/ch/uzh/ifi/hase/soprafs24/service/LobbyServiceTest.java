@@ -30,7 +30,7 @@ public class LobbyServiceTest {
         playerRepository = Mockito.mock(PlayerRepository.class);
         websocketService = Mockito.mock(WebsocketService.class);
         teamRepository = Mockito.mock(TeamRepository.class);
-        lobbyService = new LobbyService(lobbyRepository, playerRepository, teamRepository);
+        lobbyService = new LobbyService(lobbyRepository, playerRepository, teamRepository, websocketService);
 
         when(lobbyRepository.save(any(Lobby.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
