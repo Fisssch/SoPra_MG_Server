@@ -10,6 +10,8 @@ import ch.uzh.ifi.hase.soprafs24.service.LobbyService;
 import ch.uzh.ifi.hase.soprafs24.service.WebsocketService;
 import ch.uzh.ifi.hase.soprafs24.websocket.dto.*;
 
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -239,5 +241,13 @@ public class LobbyController {
                                 .count(); //just count the players that have ready == true 
 
         return new LobbyPlayerStatusDTO(totalPlayers, readyPlayers);
-}
+    }
+
+    @GetMapping("/{id}/customWords")
+    @ResponseStatus(HttpStatus.OK)
+    @AuthorizationRequired
+    public List<String> getCustomWords(@PathVariable Long id) {
+        Lobby lobby = lobbyService.getLobbyById(id);
+        return lobby.getCustomWords();
+    }
 }
