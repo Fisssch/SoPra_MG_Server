@@ -25,7 +25,7 @@ import ch.uzh.ifi.hase.soprafs24.repository.*;
 @Transactional
 public class GameService {
   
-  private final Logger log = LoggerFactory.getLogger(GameService.class);
+    private final Logger log = LoggerFactory.getLogger(GameService.class);
   private final WordGenerationService wordGenerationService;
   private final GameRepository gameRepository;
   private final PlayerRepository playerRepository;
@@ -59,30 +59,34 @@ public class GameService {
     gameRepository.save(game);
   }
 
-  public Game startOrGetGame(Long id, TeamColor startingTeam, GameMode gameMode, String theme) {
-    Optional<Game> optionalGame = gameRepository.findById(id);
-    Game game;
-        
-    if (optionalGame.isPresent()){
-        game = optionalGame.get();
-    } else {
-        game = new Game();
+    public Game startOrGetGame(Long id, TeamColor startingTeam, GameMode gameMode, String theme) {
+        Optional<Game> optionalGame = gameRepository.findById(id);
+            
+        if (optionalGame.isPresent()){
+            return optionalGame.get();
+        } 
+        Game game = new Game();
         game.setId(id);
         game.setStartingTeam(startingTeam);
         game.setTeamTurn(startingTeam); 
         game.setStatus("playing");
         game.setWinningTeam(null);
         game.setGameMode(gameMode);
-        gameRepository.save(game); 
 
-        List <String> words = generateWords(id, theme); 
-        game.setWords(words);
-        List <Card> board = assignColorsToWords(words, startingTeam);
-        game.setBoard(board);
+        try {
+            List <String> words = generateWords(id, theme); 
+            game.setWords(words);
 
-        gameRepository.save(game);
-    }
-    return game; 
+            List <Card> board = assignColorsToWords(words, startingTeam);
+            game.setBoard(board);
+
+            gameRepository.save(game);
+            System.out.println("started game successfully");
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to create a new game");
+        }
+        
+        return game; 
     }
 
     public List<Card> getBoard(Long id) {
