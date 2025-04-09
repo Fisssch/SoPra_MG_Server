@@ -1,22 +1,32 @@
 package ch.uzh.ifi.hase.soprafs24.service;
 
+import ch.uzh.ifi.hase.soprafs24.constant.CardColor;
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
+import ch.uzh.ifi.hase.soprafs24.constant.PlayerRole;
 import ch.uzh.ifi.hase.soprafs24.constant.TeamColor;
+import ch.uzh.ifi.hase.soprafs24.entity.Card;
 import ch.uzh.ifi.hase.soprafs24.entity.Game;
 import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
+import ch.uzh.ifi.hase.soprafs24.entity.Player;
+import ch.uzh.ifi.hase.soprafs24.entity.Team;
+import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.*;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 public class GameServiceTest {
@@ -133,7 +143,6 @@ public class GameServiceTest {
         assertTrue(result.contains("CUSTOM2"));
     }
 
-
     @Test
     public void generateWords_gameNotFound_throwsException() {
         when(gameRepository.findById(99L)).thenReturn(Optional.empty());
@@ -148,5 +157,431 @@ public class GameServiceTest {
 
         assertThrows(ResponseStatusException.class, () -> gameService.generateWords(1L, "default"));
     }
+
+    @Nested
+    class BoardTests {
+        @Test
+        public void getBoard_success() {
+            List<Card> mockCards = new ArrayList<>();
+            mockCards.add(new Card("APPLE", CardColor.RED));
+            mockCards.add(new Card("BANANA", CardColor.BLUE));
+            game.setBoard(mockCards);
+            
+            when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+            
+            List<Card> result = gameService.getBoard(1L);
+            
+            assertEquals(2, result.size());
+            assertEquals("APPLE", result.get(0).getWord());
+            assertEquals(CardColor.RED, result.get(0).getColor());
+            assertEquals("BANANA", result.get(1).getWord());
+            assertEquals(CardColor.BLUE, result.get(1).getColor());
+        }
+        
+        @Test
+        public void getBoard_gameNotFound_throwsException() {
+            when(gameRepository.findById(99L)).thenReturn(Optional.empty());
+            
+            assertThrows(ResponseStatusException.class, () -> gameService.getBoard(99L));
+        }
+    }
     
+    @Nested
+    class HintTests {
+        @Test
+        public void checkIfUserSpymaster_success() {
+            User user = new User();
+            user.setId(1L);
+            
+            Player player = new Player();
+            player.setId(1L);
+            player.setRole(PlayerRole.SPYMASTER);
+            
+            when(playerRepository.findById(1L)).thenReturn(Optional.of(player));
+            
+            // Should not throw exception
+            gameService.checkIfUserSpymaster(user);
+            
+            verify(playerRepository).findById(1L);
+        }
+        
+        @Test
+        public void checkIfUserSpymaster_notSpymaster_throwsException() {
+            User user = new User();
+            user.setId(1L);
+            
+            Player player = new Player();
+            player.setId(1L);
+            player.setRole(PlayerRole.FIELD_OPERATIVE);
+            
+            when(playerRepository.findById(1L)).thenReturn(Optional.of(player));
+            
+            ResponseStatusException exception = assertThrows(ResponseStatusException.class, 
+                    () -> gameService.checkIfUserSpymaster(user));
+            assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+            assertEquals("Only spymasters can give hints", exception.getReason());
+        }
+        
+        @Test
+        public void checkIfUserSpymaster_playerNotFound_throwsException() {
+            User user = new User();
+            user.setId(1L);
+            
+            when(playerRepository.findById(1L)).thenReturn(Optional.empty());
+            
+            ResponseStatusException exception = assertThrows(ResponseStatusException.class, 
+                    () -> gameService.checkIfUserSpymaster(user));
+            assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+            assertEquals("Player not found", exception.getReason());
+        }
+        
+        @Test
+        public void validateHint_validHint_savesHint() {
+            Game game = new Game();
+            game.setId(1L);
+            
+            when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+            
+            gameService.validateHint("forest", 3, 1L);
+            
+            assertEquals("forest", game.getCurrentHint().getKey());
+            assertEquals(3, game.getCurrentHint().getValue());
+            verify(gameRepository).save(game);
+        }
+        
+        @Test
+        public void validateHint_emptyHint_throwsException() {
+            ResponseStatusException exception = assertThrows(ResponseStatusException.class, 
+                    () -> gameService.validateHint("", 3, 1L));
+            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+            assertEquals("Hint cannot be empty and only one word is allowed", exception.getReason());
+        }
+        
+        @Test
+        public void validateHint_multiwordHint_throwsException() {
+            ResponseStatusException exception = assertThrows(ResponseStatusException.class, 
+                    () -> gameService.validateHint("multiple words", 3, 1L));
+            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+            assertEquals("Hint cannot be empty and only one word is allowed", exception.getReason());
+        }
+        
+        @Test
+        public void validateHint_zeroWordCount_throwsException() {
+            ResponseStatusException exception = assertThrows(ResponseStatusException.class, 
+                    () -> gameService.validateHint("forest", 0, 1L));
+            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+            assertEquals("Word count must be at least 1", exception.getReason());
+        }
+        
+        @Test
+        public void validateHint_gameNotFound_throwsException() {
+            when(gameRepository.findById(anyLong())).thenReturn(Optional.empty());
+            
+            ResponseStatusException exception = assertThrows(ResponseStatusException.class, 
+                    () -> gameService.validateHint("forest", 3, 1L));
+            assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+            assertEquals("Game not found", exception.getReason());
+        }
+    }
+    
+    @Nested
+    class GuessTests {
+        @Test
+        public void makeGuess_correctTeamCard_success() {
+            // Setup game
+            Game game = new Game();
+            game.setId(1L);
+            game.setTeamTurn(TeamColor.RED);
+            game.setStatus("playing");
+            game.getCurrentHint().setValue(2); // Allow 2 guesses for this hint
+            
+            // Create a board with a red card
+            List<Card> board = new ArrayList<>();
+            Card redCard = new Card("APPLE", CardColor.RED);
+            board.add(redCard);
+            game.setBoard(board);
+            
+            when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+            
+            // Make the guess
+            Map.Entry<Boolean, TeamColor> result = gameService.makeGuess(1L, TeamColor.RED, "APPLE", new User());
+            
+            // Verify results
+            assertFalse(result.getKey()); // Game not over
+            assertEquals(TeamColor.RED, result.getValue()); // Still RED team's turn
+            assertTrue(redCard.isGuessed()); // Card marked as guessed
+            assertEquals(1, game.getGuessedInHint()); // Guess counter incremented
+        }
+        
+        @Test
+        public void makeGuess_enemyCard_switchesTurn() {
+            // Setup game
+            Game game = new Game();
+            game.setId(1L);
+            game.setTeamTurn(TeamColor.RED);
+            game.setStatus("playing");
+            
+            // Create a board with a blue card
+            List<Card> board = new ArrayList<>();
+            Card blueCard = new Card("APPLE", CardColor.BLUE);
+            board.add(blueCard);
+            game.setBoard(board);
+            
+            when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+            
+            // Make the guess
+            Map.Entry<Boolean, TeamColor> result = gameService.makeGuess(1L, TeamColor.RED, "APPLE", new User());
+            
+            // Verify results
+            assertFalse(result.getKey()); // Game not over
+            assertEquals(TeamColor.BLUE, result.getValue()); // Turn switched to BLUE team
+            assertTrue(blueCard.isGuessed()); // Card marked as guessed
+            assertEquals(TeamColor.BLUE, game.getTeamTurn()); // Team turn updated
+        }
+        
+        @Test
+        public void makeGuess_blackCard_gameOver() {
+            // Setup game
+            Game game = new Game();
+            game.setId(1L);
+            game.setTeamTurn(TeamColor.RED);
+            game.setStatus("playing");
+            
+            // Create a board with a black card
+            List<Card> board = new ArrayList<>();
+            Card blackCard = new Card("APPLE", CardColor.BLACK);
+            board.add(blackCard);
+            game.setBoard(board);
+            
+            // Setup user
+            User user = new User();
+            
+            when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+            when(userRepository.save(any(User.class))).thenReturn(user);
+            
+            // Make the guess
+            Map.Entry<Boolean, TeamColor> result = gameService.makeGuess(1L, TeamColor.RED, "APPLE", user);
+            
+            // Verify results
+            assertTrue(result.getKey()); // Game over
+            assertEquals(TeamColor.BLUE, result.getValue()); // BLUE team wins
+            assertTrue(blackCard.isGuessed()); // Card marked as guessed
+            assertEquals("finished", game.getStatus()); // Game marked as finished
+            assertEquals(TeamColor.BLUE, game.getWinningTeam()); // BLUE team won
+            verify(userRepository).save(user); // User black card stat updated
+        }
+        
+        @Test
+        public void makeGuess_neutralCard_switchesTurn() {
+            // Setup game
+            Game game = new Game();
+            game.setId(1L);
+            game.setTeamTurn(TeamColor.RED);
+            game.setStatus("playing");
+            
+            // Create a board with a neutral card
+            List<Card> board = new ArrayList<>();
+            Card neutralCard = new Card("APPLE", CardColor.NEUTRAL);
+            board.add(neutralCard);
+            game.setBoard(board);
+            
+            when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+            
+            // Make the guess
+            Map.Entry<Boolean, TeamColor> result = gameService.makeGuess(1L, TeamColor.RED, "APPLE", new User());
+            
+            // Verify results
+            assertFalse(result.getKey()); // Game not over
+            assertEquals(TeamColor.BLUE, result.getValue()); // Turn switched to BLUE team
+            assertTrue(neutralCard.isGuessed()); // Card marked as guessed
+        }
+        
+        @Test
+        public void makeGuess_lastCardOfTeam_gameOver() {
+            // Setup game
+            Game game = new Game();
+            game.setId(1L);
+            game.setTeamTurn(TeamColor.RED);
+            game.setStatus("playing");
+            
+            // Create a board with one remaining red card
+            List<Card> board = new ArrayList<>();
+            Card redCard = new Card("APPLE", CardColor.RED);
+            board.add(redCard);
+            game.setBoard(board);
+            
+            when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+            
+            // Make the guess
+            Map.Entry<Boolean, TeamColor> result = gameService.makeGuess(1L, TeamColor.RED, "APPLE", new User());
+            
+            // Verify results
+            assertTrue(result.getKey()); // Game over
+            assertEquals(TeamColor.RED, result.getValue()); // RED team wins
+            assertTrue(redCard.isGuessed()); // Card marked as guessed
+            assertEquals("finished", game.getStatus()); // Game marked as finished
+            assertEquals(TeamColor.RED, game.getWinningTeam()); // RED team won
+        }
+        
+        @Test
+        public void makeGuess_notYourTurn_throwsException() {
+            // Setup game
+            Game game = new Game();
+            game.setId(1L);
+            game.setTeamTurn(TeamColor.RED);
+            
+            when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+            
+            // Try to make a guess as BLUE team
+            ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                    () -> gameService.makeGuess(1L, TeamColor.BLUE, "APPLE", new User()));
+            
+            assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+            assertEquals("It's not your turn", exception.getReason());
+        }
+        
+        @Test
+        public void makeGuess_gameFinished_throwsException() {
+            // Setup game
+            Game game = new Game();
+            game.setId(1L);
+            game.setTeamTurn(TeamColor.RED);
+            game.setStatus("finished");
+            
+            when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+            
+            // Try to make a guess in a finished game
+            ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                    () -> gameService.makeGuess(1L, TeamColor.RED, "APPLE", new User()));
+            
+            assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+            assertEquals("Game is already finished", exception.getReason());
+        }
+        
+        @Test
+        public void makeGuess_exceedMaxGuesses_throwsException() {
+            // Setup game
+            Game game = new Game();
+            game.setId(1L);
+            game.setTeamTurn(TeamColor.RED);
+            game.setStatus("playing");
+            game.getCurrentHint().setValue(2); // Allow 2 guesses for this hint
+            game.setGuessedInHint(2); // Already guessed 2 times
+            
+            when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+            
+            // Try to make an additional guess
+            ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                    () -> gameService.makeGuess(1L, TeamColor.RED, "APPLE", new User()));
+            
+            assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+            assertEquals("You have already guessed the maximum number of words for this hint", exception.getReason());
+        }
+        
+        @Test
+        public void makeGuess_wordNotFound_throwsException() {
+            // Setup game
+            Game game = new Game();
+            game.setId(1L);
+            game.setTeamTurn(TeamColor.RED);
+            game.setStatus("playing");
+            game.setBoard(new ArrayList<>()); // Empty board
+            
+            when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+            
+            // Try to guess a word that's not on the board
+            ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                    () -> gameService.makeGuess(1L, TeamColor.RED, "NONEXISTENT", new User()));
+            
+            assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+            assertEquals("Word not found in the game board", exception.getReason());
+        }
+    }
+    
+    @Nested
+    class PlayerStatsTests {
+        @Test
+        public void updatePlayerStats_updatesWinLossRecords() {
+            // Setup lobby with players
+            Lobby lobby = new Lobby();
+            lobby.setId(1L);
+            
+            // Create teams
+            Team redTeam = new Team();
+            redTeam.setColor(TeamColor.RED);
+            Team blueTeam = new Team();
+            blueTeam.setColor(TeamColor.BLUE);
+            
+            // Create players
+            Player redPlayer1 = new Player();
+            redPlayer1.setId(1L);
+            redPlayer1.setTeam(redTeam);
+            
+            Player redPlayer2 = new Player();
+            redPlayer2.setId(2L);
+            redPlayer2.setTeam(redTeam);
+            
+            Player bluePlayer1 = new Player();
+            bluePlayer1.setId(3L);
+            bluePlayer1.setTeam(blueTeam);
+            
+            Player bluePlayer2 = new Player();
+            bluePlayer2.setId(4L);
+            bluePlayer2.setTeam(blueTeam);
+            
+            lobby.addPlayer(redPlayer1);
+            lobby.addPlayer(redPlayer2);
+            lobby.addPlayer(bluePlayer1);
+            lobby.addPlayer(bluePlayer2);
+            
+            // Create users
+            User user1 = new User();
+            user1.setId(1L);
+            User user2 = new User();
+            user2.setId(2L);
+            User user3 = new User();
+            user3.setId(3L);
+            User user4 = new User();
+            user4.setId(4L);
+            
+            // Mock repository methods
+            when(lobbyRepository.findById(1L)).thenReturn(Optional.of(lobby));
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user1));
+            when(userRepository.findById(2L)).thenReturn(Optional.of(user2));
+            when(userRepository.findById(3L)).thenReturn(Optional.of(user3));
+            when(userRepository.findById(4L)).thenReturn(Optional.of(user4));
+            
+            // Execute the method - RED team wins
+            gameService.updatePlayerStats(1L, TeamColor.RED);
+            
+            // Verify RED team players got a win
+            verify(userRepository).save(eq(user1));
+            verify(userRepository).save(eq(user2));
+            
+            // Verify BLUE team players got a loss
+            verify(userRepository).save(eq(user3));
+            verify(userRepository).save(eq(user4));
+            
+            // Verify win/loss counts
+            assertEquals(1, user1.getWins());
+            assertEquals(0, user1.getLosses());
+            assertEquals(1, user2.getWins());
+            assertEquals(0, user2.getLosses());
+            assertEquals(0, user3.getWins());
+            assertEquals(1, user3.getLosses());
+            assertEquals(0, user4.getWins());
+            assertEquals(1, user4.getLosses());
+        }
+        
+        @Test
+        public void updatePlayerStats_lobbyNotFound_throwsException() {
+            when(lobbyRepository.findById(anyLong())).thenReturn(Optional.empty());
+            
+            ResponseStatusException exception = assertThrows(ResponseStatusException.class, 
+                    () -> gameService.updatePlayerStats(1L, TeamColor.RED));
+            
+            assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+            assertEquals("Lobby not found", exception.getReason());
+        }
+    }
 }
