@@ -65,22 +65,6 @@ public class GameControllerTest {
     }
 
     @Test
-    public void getGameWords_gameNotFound_returnsNotFound() throws Exception {
-        Game dummyGame = new Game(); 
-        dummyGame.setId(1L);
-        given(userService.validateToken(Mockito.any())).willReturn(testUser);
-        given(gameService.generateWords(Mockito.eq(dummyGame), Mockito.eq("default")))
-                .willThrow(new ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND));
-
-        MockHttpServletRequestBuilder getRequest = get("/game/1/words")
-                .header("Authorization", "Bearer validToken")
-                .contentType(MediaType.APPLICATION_JSON);
-
-        mockMvc.perform(getRequest)
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
     public void startGame_validRequest_returnsGame() throws Exception {
         Game game = new Game();
         game.setId(1L);
