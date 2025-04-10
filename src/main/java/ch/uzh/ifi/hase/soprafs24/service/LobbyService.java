@@ -277,7 +277,7 @@ public class LobbyService {
         int total = lobby.getPlayers().size();
         int ready = (int) lobby.getPlayers().stream().filter(p -> Boolean.TRUE.equals(p.getReady())).count();
 
-        websocketService.sendMessage("/topic/lobby" + lobbyId + "/playerStatus",
+        websocketService.sendMessage("/topic/lobby/" + lobbyId + "/playerStatus",
                 new LobbyPlayerStatusDTO(total, ready));
     }
 }

@@ -86,7 +86,7 @@ public class LobbyController {
     @AuthorizationRequired
     public void updateGameMode(@PathVariable Long id, @RequestBody GameMode gameMode) {
         var lobby = lobbyService.setGameMode(id, gameMode);
-        webSocketService.sendMessage("/topic/lobby" + id + "/gameMode", DTOMapper.INSTANCE.convertEntityToLobbyDTO(lobby));
+        webSocketService.sendMessage("/topic/lobby/" + id + "/gameMode", DTOMapper.INSTANCE.convertEntityToLobbyDTO(lobby));
     }
 
     @PutMapping("/{id}/{playerId}")
