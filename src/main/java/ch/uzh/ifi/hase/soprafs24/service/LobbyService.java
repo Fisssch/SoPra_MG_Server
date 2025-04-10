@@ -14,6 +14,7 @@ import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs24.entity.Player;
 import ch.uzh.ifi.hase.soprafs24.entity.Team;
 import ch.uzh.ifi.hase.soprafs24.repository.*;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyPlayerStatusDTO;
 
 @Service
 @Transactional
@@ -23,11 +24,13 @@ public class LobbyService {
     private final LobbyRepository lobbyRepository;
     private final PlayerRepository playerRepository;
     private final TeamRepository teamRepository;
+    private final WebsocketService websocketService;
 
-    public LobbyService(LobbyRepository lobbyRepository, PlayerRepository playerRepository, TeamRepository teamRepository) {
+    public LobbyService(LobbyRepository lobbyRepository, PlayerRepository playerRepository, TeamRepository teamRepository, WebsocketService websocketService) {
         this.playerRepository = playerRepository;
         this.lobbyRepository = lobbyRepository;
         this.teamRepository = teamRepository;
+        this.websocketService = websocketService;
     }
     
     public Lobby getOrCreateLobby(Integer lobbyCode) {
@@ -105,11 +108,14 @@ public class LobbyService {
         } else {
             player.setRole(PlayerRole.FIELD_OPERATIVE);
         }
-        
+
         playerRepository.save(player);
         lobby.addPlayer(player);
         teamRepository.save(assignedTeam);
         lobbyRepository.save(lobby);
+
+        sendLobbyPlayerStatusUpdate(lobbyId);
+
         return player;
     }
 
@@ -127,22 +133,21 @@ public class LobbyService {
 
         lobby.removePlayer(player);
         lobbyRepository.save(lobby);
-        playerRepository.delete(player); // remove all players
+        playerRepository.delete(player);
 
-        Lobby updatedLobby = getLobbyById(lobbyId); //reload lobby again after player removal 
+        Lobby updatedLobby = getLobbyById(lobbyId);
 
         if (updatedLobby.getPlayers().isEmpty()) {
-
-            //need to also remove teams
-            if (updatedLobby.getRedTeam() != null){
+            if (updatedLobby.getRedTeam() != null) {
                 teamRepository.delete(updatedLobby.getRedTeam());
             }
-
-            if (updatedLobby.getBlueTeam() != null){
+            if (updatedLobby.getBlueTeam() != null) {
                 teamRepository.delete(updatedLobby.getBlueTeam());
             }
-            lobbyRepository.delete(updatedLobby); // remove Lobby
-        } 
+            lobbyRepository.delete(updatedLobby);
+        } else {
+            sendLobbyPlayerStatusUpdate(lobbyId); // WebSocket-Update
+        }
     }
 
     public Player changePlayerTeam(Long lobbyId, Long playerId, String color) {
@@ -225,11 +230,12 @@ public class LobbyService {
 
     public Player setPlayerReadyStatus(Long lobbyId, Long playerId, boolean ready, WebsocketService websocketService) {
         Lobby lobby = getLobbyById(lobbyId);
-
         Player player = playerRepository.findById(playerId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found with id: " + playerId));
 
         player.setReady(ready);
         playerRepository.save(player);
+
+        sendLobbyPlayerStatusUpdate(lobbyId);
 
         if (shouldStartGame(lobby)) {
             lobby.setGameStarted(true);
@@ -268,5 +274,14 @@ public class LobbyService {
 
     private int generateLobbyCode() {
         return (int) (Math.random() * 9000) + 1000;
+    }
+
+    private void sendLobbyPlayerStatusUpdate(Long lobbyId) {
+        Lobby lobby = getLobbyById(lobbyId);
+        int total = lobby.getPlayers().size();
+        int ready = (int) lobby.getPlayers().stream().filter(p -> Boolean.TRUE.equals(p.getReady())).count();
+
+        websocketService.sendMessage("/topic/lobby/" + lobbyId + "/playerStatus",
+                new LobbyPlayerStatusDTO(total, ready));
     }
 }

@@ -86,7 +86,7 @@ public class LobbyController {
     @AuthorizationRequired
     public void updateGameMode(@PathVariable Long id, @RequestBody GameMode gameMode) {
         var lobby = lobbyService.setGameMode(id, gameMode);
-        webSocketService.sendMessage("/topic/lobby" + id + "/gameMode", DTOMapper.INSTANCE.convertEntityToLobbyDTO(lobby));
+        webSocketService.sendMessage("/topic/lobby/" + id + "/gameMode", DTOMapper.INSTANCE.convertEntityToLobbyDTO(lobby));
     }
 
     @PutMapping("/{id}/{playerId}")
@@ -111,7 +111,7 @@ public class LobbyController {
         updateDto.setColor(addedPlayer.getTeam() != null ? addedPlayer.getTeam().getColor().name() : null);
         updateDto.setRole(addedPlayer.getRole() != null ? addedPlayer.getRole().name() : null);
 
-        webSocketService.sendMessage("/topic/lobby" + id + "/addPlayer", updateDto);
+        webSocketService.sendMessage("/topic/lobby/" + id + "/addPlayer", updateDto);
 
         return response;
     }
@@ -122,7 +122,7 @@ public class LobbyController {
     public void removePlayerFromLobby(@PathVariable Long id, @PathVariable Long playerId) {   
         lobbyService.removePlayerFromLobby(id, playerId);
 
-        webSocketService.sendMessage("/topic/lobby" + id + "/removePlayer", new RemovePlayerDTO(playerId));
+        webSocketService.sendMessage("/topic/lobby/" + id + "/removePlayer", new RemovePlayerDTO(playerId));
     }
 
     @GetMapping("/{id}/role/{playerId}")
@@ -157,7 +157,7 @@ public class LobbyController {
         PlayerUpdateDTO playerUpdateDTO = DTOMapper.INSTANCE.convertEntityToPlayerUpdateDTO(updatedPlayer);
         playerUpdateDTO.setColor(updatedPlayer.getTeam() != null ? updatedPlayer.getTeam().getColor().name() : null);
         playerUpdateDTO.setRole(updatedPlayer.getRole() != null ? updatedPlayer.getRole().name() : null);
-        webSocketService.sendMessage("/topic/lobby" + id + "/players", playerUpdateDTO);
+        webSocketService.sendMessage("/topic/lobby/" + id + "/players", playerUpdateDTO);
     }
 
     @GetMapping("/{id}/team/{playerId}")
@@ -190,7 +190,7 @@ public class LobbyController {
         PlayerUpdateDTO playerUpdateDTO = DTOMapper.INSTANCE.convertEntityToPlayerUpdateDTO(updatedPlayer);
         playerUpdateDTO.setColor(updatedPlayer.getTeam() != null ? updatedPlayer.getTeam().getColor().name() : null);
         playerUpdateDTO.setRole(updatedPlayer.getRole() != null ? updatedPlayer.getRole().name() : null);
-        webSocketService.sendMessage("/topic/lobby" + id + "/players", playerUpdateDTO);
+        webSocketService.sendMessage("/topic/lobby/" + id + "/players", playerUpdateDTO);
     }
 
     @GetMapping("/{id}/status/{playerId}")
@@ -218,7 +218,7 @@ public class LobbyController {
         PlayerUpdateDTO playerUpdateDTO = DTOMapper.INSTANCE.convertEntityToPlayerUpdateDTO(updatedPlayer);
         playerUpdateDTO.setColor(updatedPlayer.getTeam() != null ? updatedPlayer.getTeam().getColor().name() : null);
         playerUpdateDTO.setRole(updatedPlayer.getRole() != null ? updatedPlayer.getRole().name() : null);
-        webSocketService.sendMessage("/topic/lobby" + id + "/players", playerUpdateDTO);
+        webSocketService.sendMessage("/topic/lobby/" + id + "/players", playerUpdateDTO);
     }
 
     @PutMapping("/{id}/customWord")
@@ -226,7 +226,7 @@ public class LobbyController {
     @AuthorizationRequired
     public void addCustomWord(@PathVariable Long id, @RequestBody CustomWordDTO wordDTO){
         Lobby updatedLobby = lobbyService.addCustomWord(id, wordDTO.getWord());
-        webSocketService.sendMessage("/topic/lobby" + id + "/customWords", updatedLobby.getCustomWords());
+        webSocketService.sendMessage("/topic/lobby/" + id + "/customWords", updatedLobby.getCustomWords());
     }
 
     @GetMapping("/{id}/players")
