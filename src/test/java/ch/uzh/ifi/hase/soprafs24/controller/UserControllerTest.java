@@ -2,11 +2,13 @@ package ch.uzh.ifi.hase.soprafs24.controller;
 
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserLoginDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserUpdatePasswordDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserUpdateUsernameDTO;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,263 +20,299 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.doNothing;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.hamcrest.Matchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-/**
- * UserControllerTest
- * This is a WebMvcTest which allows to test the UserController i.e. GET/POST
- * request without actually sending them over the network.
- * This tests if the UserController works.
- */
 @WebMvcTest(UserController.class)
 public class UserControllerTest {
 
-  @Autowired
-  private MockMvc mockMvc;
+    @Autowired
+    private MockMvc mockMvc;
 
-  @MockBean
-  private UserService userService;
+    @MockBean
+    private UserService userService;
 
-  @Test
-  public void givenUsers_whenGetUsers_thenReturnJsonArray() throws Exception {
-    // given
-    User user = new User();
-    user.setUsername("firstname@lastname");
-    user.setOnlineStatus(UserStatus.OFFLINE);
-
-    List<User> allUsers = Collections.singletonList(user);
-
-    // this mocks the UserService -> we define above what the userService should
-    // return when getUsers() is called
-    given(userService.getUsers()).willReturn(allUsers);
-    given(userService.validateToken(Mockito.any())).willReturn(user);
-
-    // when
-    MockHttpServletRequestBuilder getRequest = get("/users").header("Authorization", "123").contentType(MediaType.APPLICATION_JSON);
-
-    // then
-    mockMvc.perform(getRequest).andExpect(status().isOk())
-        .andExpect(jsonPath("$", hasSize(1)))
-        .andExpect(jsonPath("$[0].username", is(user.getUsername())))
-        .andExpect(jsonPath("$[0].onlineStatus", is(user.getOnlineStatus().toString())));
-  }
-
-  @Test
-  public void createUser_validInput_userCreated() throws Exception {
-    // given
-    User user = new User();
-    user.setId(1L);
-    user.setUsername("testUsername");
-    user.setToken("1");
-    user.setOnlineStatus(UserStatus.ONLINE);
-
-    UserPostDTO userPostDTO = new UserPostDTO();
-    userPostDTO.setUsername("testUsername");
-    userPostDTO.setPassword("testPassword");
-
-    given(userService.createUser(Mockito.any())).willReturn(user);
-
-    // when/then -> do the request + validate the result
-    MockHttpServletRequestBuilder postRequest = post("/users")
-        .contentType(MediaType.APPLICATION_JSON)
-        .content(asJsonString(userPostDTO));
-
-    // then
-    mockMvc.perform(postRequest)
-        .andExpect(status().isCreated())
-        .andExpect(header().string("Authorization", "Bearer 1"))
-        .andExpect(jsonPath("$.id", is(user.getId().intValue())))
-        .andExpect(jsonPath("$.username", is(user.getUsername())))
-        .andExpect(jsonPath("$.onlineStatus", is(user.getOnlineStatus().toString())));
-  }
-
-  @Test
-  public void loginUser_validInput_loginSuccessful() throws Exception {
-    // given
-    User user = new User();
-    user.setId(1L);
-    user.setUsername("username");
-    user.setToken("1");
-
-    UserLoginDTO loginDTO = new UserLoginDTO();
-    loginDTO.setUsername("username");
-    loginDTO.setPassword("password");
-
-    given(userService.loginUser(Mockito.any(), Mockito.any())).willReturn(user);
-
-    MockHttpServletRequestBuilder postRequest = post("/users/login")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(asJsonString(loginDTO));
-
-    // when/then
-    mockMvc.perform(postRequest)
-            .andExpect(status().isOk())
-            .andExpect(header().string("Authorization", "Bearer 1"))
-            .andExpect(jsonPath("$.id", is(user.getId().intValue())))
-            .andExpect(jsonPath("$.username", is(user.getUsername())));
-  }
-
-  @Test
-  public void loginUser_invalidCredentials_returnsUnauthorized() throws Exception {
-    UserLoginDTO loginDTO = new UserLoginDTO();
-    loginDTO.setUsername("wrongUser");
-    loginDTO.setPassword("wrongPass");
-
-    given(userService.loginUser(Mockito.any(), Mockito.any()))
-        .willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
-
-    MockHttpServletRequestBuilder postRequest = post("/users/login")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(asJsonString(loginDTO));
-
-    mockMvc.perform(postRequest)
-          .andExpect(status().isUnauthorized());
-  }
-
-  @Test
-  public void logoutUser_validToken_logoutSuccessful() throws Exception {
-    // given
-    doNothing().when(userService).logoutUser(Mockito.any()); //use do nothing here because logoutUser is a void method --> no return 
-
-    MockHttpServletRequestBuilder postRequest = post("/users/logout")
-            .header("Authorization", "Bearer 1");
-
-    // when/then
-    mockMvc.perform(postRequest)
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.message", is("Successfully logged out")));
-  }
-
-  @Test
-  public void logoutUser_invalidToken_returnsUnauthorized() throws Exception {
-    Mockito.doThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token"))
-        .when(userService).logoutUser(Mockito.any());
-
-    MockHttpServletRequestBuilder postRequest = post("/users/logout")
-        .header("Authorization", "Bearer invalid");
-
-    mockMvc.perform(postRequest)
-        .andExpect(status().isUnauthorized());
-  }
-
-  @Test
-  public void getUser_validInput_userReturned() throws Exception {
-    // given
-    User user = new User();
-    user.setId(3L);
-    user.setUsername("fetchUser");
-
-    given(userService.getUserById(3L)).willReturn(user);
-    given(userService.validateToken(Mockito.any())).willReturn(user);
-
-    MockHttpServletRequestBuilder getRequest = get("/users/3")
-            .header("Authorization", "Bearer someToken");
-
-    // when/then
-    mockMvc.perform(getRequest)
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.username", is(user.getUsername())));
-  }
-
-  @Test
-  public void getUser_invalidToken_returnsUnauthorized() throws Exception {
-    // given
-    given(userService.validateToken(Mockito.any()))
-        .willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token"));
-
-    // when
-    MockHttpServletRequestBuilder getRequest = get("/users/1")
-            .header("Authorization", "Bearer invalidToken");
-
-    // then
-    mockMvc.perform(getRequest)
-            .andExpect(status().isUnauthorized());
-  }
-
-  @Test
-  public void updateUsername_validInput_usernameUpdated() throws Exception {
-    // given
-    doNothing().when(userService).updateUsername(Mockito.eq(1L), Mockito.eq("newUsername"), Mockito.any());
-
-    MockHttpServletRequestBuilder putRequest = put("/users/1/username")
-            .header("Authorization", "Bearer 1")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("{\"username\":\"newUsername\"}");
-
-    // when/then
-    mockMvc.perform(putRequest)
-            .andExpect(status().isNoContent());
-  }
-
-  @Test
-  public void updateUsername_invalidToken_returnsUnauthorized() throws Exception {
-
-    Mockito.doThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token"))
-        .when(userService).updateUsername(Mockito.eq(1L), Mockito.eq("newUsername"), Mockito.any());
-
-    MockHttpServletRequestBuilder putRequest = put("/users/1/username")
-        .header("Authorization", "Bearer invalid")
-        .contentType(MediaType.APPLICATION_JSON)
-        .content("{\"username\":\"newUsername\"}");
-
-    mockMvc.perform(putRequest)
-        .andExpect(status().isUnauthorized());
-  }
-
-  @Test
-  public void updatePassword_validInput_passwordUpdated() throws Exception {
-    doNothing().when(userService).updatePassword(Mockito.eq(1L), Mockito.eq("oldPassword"), Mockito.eq("newPassword"), Mockito.any());
-
-    MockHttpServletRequestBuilder putRequest = put("/users/1/password")
-        .header("Authorization", "Bearer 1")
-        .contentType(MediaType.APPLICATION_JSON)
-        .content("{\"oldPassword\":\"oldPassword\", \"newPassword\":\"newPassword\"}");
-
-    mockMvc.perform(putRequest)
-        .andExpect(status().isNoContent());
-  }
-
-  @Test
-  public void updatePassword_invalidToken_returnsUnauthorized() throws Exception {
-    Mockito.doThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token"))
-        .when(userService).updatePassword(Mockito.eq(1L), Mockito.eq("oldPassword"), Mockito.eq("newPassword"), Mockito.any());
-
-    MockHttpServletRequestBuilder putRequest = put("/users/1/password")
-        .header("Authorization", "Bearer invalid")
-        .contentType(MediaType.APPLICATION_JSON)
-        .content("{\"oldPassword\":\"oldPassword\", \"newPassword\":\"newPassword\"}");
-
-    mockMvc.perform(putRequest)
-        .andExpect(status().isUnauthorized());
-  }
-
-  /**
-   * Helper Method to convert userPostDTO into a JSON string such that the input
-   * can be processed
-   * Input will look like this: {"name": "Test User", "username": "testUsername"}
-   * 
-   * @param object
-   * @return string
-   */
-  private String asJsonString(final Object object) {
-    try {
-      return new ObjectMapper().writeValueAsString(object);
-    } catch (JsonProcessingException e) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-          String.format("The request body could not be created.%s", e.toString()));
+    private String asJsonString(final Object object) {
+        try {
+            return new ObjectMapper().writeValueAsString(object);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
-  }
+
+    @Test
+    public void getAllUsers_returnsJsonArray() throws Exception {
+        // given
+        User user = new User();
+        user.setId(1L);
+        user.setUsername("testUser");
+        user.setPassword("test");
+        user.setToken("1");
+        user.setOnlineStatus(UserStatus.ONLINE);
+
+        List<User> allUsers = Arrays.asList(user);
+
+        // this mocks the UserService -> we define above what the userService should
+        // return when getUsers() is called
+        when(userService.getUsers()).thenReturn(allUsers);
+
+        // when
+        MockHttpServletRequestBuilder getRequest = get("/users")
+                .contentType(MediaType.APPLICATION_JSON);
+
+        // then
+        mockMvc.perform(getRequest).andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].id", is(1)))
+                .andExpect(jsonPath("$[0].username", is(user.getUsername())))
+                .andExpect(jsonPath("$[0].onlineStatus", is(user.getOnlineStatus().toString())));
+    }
+
+    @Test
+    public void createUser_validInput_userCreated() throws Exception {
+        // given
+        User user = new User();
+        user.setId(1L);
+        user.setUsername("testUsername");
+        user.setPassword("testPassword");
+        user.setToken("1");
+        user.setOnlineStatus(UserStatus.ONLINE);
+
+        UserPostDTO userPostDTO = new UserPostDTO();
+        userPostDTO.setUsername("testUsername");
+        userPostDTO.setPassword("testPassword");
+
+        when(userService.createUser(any(User.class))).thenReturn(user);
+
+        // when/then -> do the request + validate the result
+        MockHttpServletRequestBuilder postRequest = post("/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(userPostDTO));
+
+        // then
+        mockMvc.perform(postRequest)
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Authorization", "Bearer 1"))
+                .andExpect(jsonPath("$.id", is(1)))
+                .andExpect(jsonPath("$.username", is(user.getUsername())))
+                .andExpect(jsonPath("$.onlineStatus", is(user.getOnlineStatus().toString())));
+    }
+
+    @Test
+    public void loginUser_validCredentials_returnsUser() throws Exception {
+        // given
+        UserLoginDTO loginDTO = new UserLoginDTO();
+        loginDTO.setUsername("testUser");
+        loginDTO.setPassword("password123");
+
+        User authenticatedUser = new User();
+        authenticatedUser.setId(1L);
+        authenticatedUser.setUsername("testUser");
+        authenticatedUser.setPassword("password123");
+        authenticatedUser.setToken("test-token");
+        authenticatedUser.setOnlineStatus(UserStatus.ONLINE);
+
+        when(userService.loginUser("testUser", "password123")).thenReturn(authenticatedUser);
+
+        // when/then
+        mockMvc.perform(post("/users/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(loginDTO)))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Authorization", "Bearer test-token"))
+                .andExpect(jsonPath("$.id", is(1)))
+                .andExpect(jsonPath("$.username", is("testUser")))
+                .andExpect(jsonPath("$.onlineStatus", is("ONLINE")));
+    }
+
+    @Test
+    public void loginUser_invalidCredentials_returns401() throws Exception {
+        // given
+        UserLoginDTO loginDTO = new UserLoginDTO();
+        loginDTO.setUsername("testUser");
+        loginDTO.setPassword("wrongPassword");
+
+        when(userService.loginUser("testUser", "wrongPassword"))
+                .thenThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Incorrect password"));
+
+        // when/then
+        mockMvc.perform(post("/users/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(loginDTO)))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    public void logoutUser_validToken_returns200() throws Exception {
+        // given
+        String token = "test-token";
+        when(userService.extractToken("Bearer " + token)).thenReturn(token);
+        doNothing().when(userService).logoutUser(token);
+
+        // when/then
+        mockMvc.perform(post("/users/logout")
+                .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message", is("Successfully logged out")));
+
+        verify(userService).extractToken("Bearer " + token);
+        verify(userService).logoutUser(token);
+    }
+
+    @Test
+    public void getUser_validIdAndToken_returnsUser() throws Exception {
+        // given
+        Long userId = 1L;
+        String token = "test-token";
+
+        User user = new User();
+        user.setId(userId);
+        user.setUsername("testUser");
+        user.setOnlineStatus(UserStatus.ONLINE);
+        user.setWins(5);
+        user.setLosses(3);
+
+        when(userService.extractToken("Bearer " + token)).thenReturn(token);
+        when(userService.validateToken(token)).thenReturn(user);
+        when(userService.getUserById(userId)).thenReturn(user);
+
+        // when/then
+        mockMvc.perform(get("/users/" + userId)
+                .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(1)))
+                .andExpect(jsonPath("$.username", is("testUser")))
+                .andExpect(jsonPath("$.onlineStatus", is("ONLINE")))
+                .andExpect(jsonPath("$.wins", is(5)))
+                .andExpect(jsonPath("$.losses", is(3)));
+    }
+
+    @Test
+    public void updateUsername_validRequest_returnsNoContent() throws Exception {
+        // given
+        Long userId = 1L;
+        String token = "test-token";
+        String newUsername = "newUsername";
+
+        UserUpdateUsernameDTO usernameDTO = new UserUpdateUsernameDTO();
+        usernameDTO.setUsername(newUsername);
+
+        when(userService.extractToken("Bearer " + token)).thenReturn(token);
+        doNothing().when(userService).updateUsername(userId, newUsername, token);
+
+        // when/then
+        mockMvc.perform(put("/users/" + userId + "/username")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(usernameDTO)))
+                .andExpect(status().isNoContent());
+
+        verify(userService).updateUsername(userId, newUsername, token);
+    }
+
+    @Test
+    public void updateUsername_conflictingUsername_returns409() throws Exception {
+        // given
+        Long userId = 1L;
+        String token = "test-token";
+        String existingUsername = "existingUser";
+
+        UserUpdateUsernameDTO usernameDTO = new UserUpdateUsernameDTO();
+        usernameDTO.setUsername(existingUsername);
+
+        when(userService.extractToken("Bearer " + token)).thenReturn(token);
+        doThrow(new ResponseStatusException(HttpStatus.CONFLICT, "Username already taken."))
+                .when(userService).updateUsername(userId, existingUsername, token);
+
+        // when/then
+        mockMvc.perform(put("/users/" + userId + "/username")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(usernameDTO)))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    public void updatePassword_validRequest_returnsNoContent() throws Exception {
+        // given
+        Long userId = 1L;
+        String token = "test-token";
+        String oldPassword = "oldPassword";
+        String newPassword = "newPassword";
+
+        UserUpdatePasswordDTO passwordDTO = new UserUpdatePasswordDTO();
+        passwordDTO.setOldPassword(oldPassword);
+        passwordDTO.setNewPassword(newPassword);
+
+        when(userService.extractToken("Bearer " + token)).thenReturn(token);
+        doNothing().when(userService).updatePassword(userId, oldPassword, newPassword, token);
+
+        // when/then
+        mockMvc.perform(put("/users/" + userId + "/password")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(passwordDTO)))
+                .andExpect(status().isNoContent());
+
+        verify(userService).updatePassword(userId, oldPassword, newPassword, token);
+    }
+
+    @Test
+    public void updatePassword_incorrectOldPassword_returns403() throws Exception {
+        // given
+        Long userId = 1L;
+        String token = "test-token";
+        String wrongPassword = "wrongPassword";
+        String newPassword = "newPassword";
+
+        UserUpdatePasswordDTO passwordDTO = new UserUpdatePasswordDTO();
+        passwordDTO.setOldPassword(wrongPassword);
+        passwordDTO.setNewPassword(newPassword);
+
+        when(userService.extractToken("Bearer " + token)).thenReturn(token);
+        doThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "Old password is incorrect."))
+                .when(userService).updatePassword(userId, wrongPassword, newPassword, token);
+
+        // when/then
+        mockMvc.perform(put("/users/" + userId + "/password")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(passwordDTO)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    public void updatePassword_differentUserId_returns401() throws Exception {
+        // given
+        Long userId = 1L;
+        String token = "test-token";
+        String oldPassword = "oldPassword";
+        String newPassword = "newPassword";
+
+        UserUpdatePasswordDTO passwordDTO = new UserUpdatePasswordDTO();
+        passwordDTO.setOldPassword(oldPassword);
+        passwordDTO.setNewPassword(newPassword);
+
+        when(userService.extractToken("Bearer " + token)).thenReturn(token);
+        doThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "You can only update your own profile."))
+                .when(userService).updatePassword(userId, oldPassword, newPassword, token);
+
+        // when/then
+        mockMvc.perform(put("/users/" + userId + "/password")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(passwordDTO)))
+                .andExpect(status().isUnauthorized());
+    }
 }

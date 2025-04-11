@@ -2,12 +2,9 @@ package ch.uzh.ifi.hase.soprafs24.service;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -102,6 +99,9 @@ public class GameService {
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
         if (game.getTeamTurn() != teamColor) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "It's not your turn");
+        }
+        if (game.getCurrentHint() == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You have to give a hint before guessing");
         }
         if (game.getGuessedInHint() >= game.getCurrentHint().getValue()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You have already guessed the maximum number of words for this hint");

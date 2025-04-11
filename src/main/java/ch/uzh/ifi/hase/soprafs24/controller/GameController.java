@@ -55,8 +55,7 @@ public class GameController {
         TeamColor startingTeam = gameStartDTO.getStartingTeam();
         GameMode gameMode = gameStartDTO.getGameMode();
         String theme = gameStartDTO.getTheme();
-        Game game = gameService.startOrGetGame(id, startingTeam, gameMode, theme);
-        return game;
+        return gameService.startOrGetGame(id, startingTeam, gameMode, theme);
     }
 
     @GetMapping("/game/{id}/board")
@@ -80,7 +79,7 @@ public class GameController {
         var result = gameService.makeGuess(id, color, guessDTO.getWordStr(), userService.validateToken(token));
         var isGameCompleted = result.getKey();
         var team = result.getValue();
-        if (isGameCompleted) {
+        if (Boolean.TRUE.equals(isGameCompleted)) {
             webSocketService.sendMessage("/topic/game/" + id + "/gameCompleted", team.name());
             gameService.updatePlayerStats(id, team);
         } else {

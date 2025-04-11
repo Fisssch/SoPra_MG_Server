@@ -150,10 +150,11 @@ public class Lobby extends DatabaseEntity {
         if (player == null || team == null) {
             return;
         }
-        
+
         if (players == null) {
             players = new ArrayList<>();
         }
+
         boolean alreadyInLobby = players.stream().anyMatch(p->p.getId().equals(player.getId())); 
         if (!alreadyInLobby){
             this.addPlayer(player);

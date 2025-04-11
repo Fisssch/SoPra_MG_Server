@@ -38,7 +38,6 @@ public class UserController {
   //update username 
   @PutMapping("/users/{id}/username")
   @ResponseStatus(HttpStatus.NO_CONTENT)
-  @ResponseBody
   public void updateUsername(
           @PathVariable Long id, 
           @RequestHeader("Authorization") String authHeader, 
@@ -50,7 +49,6 @@ public class UserController {
   //update password 
   @PutMapping("/users/{id}/password")
   @ResponseStatus(HttpStatus.NO_CONTENT)
-  @ResponseBody
   public void updatePassword(
           @PathVariable Long id, 
           @RequestHeader("Authorization") String authHeader, 
@@ -63,7 +61,6 @@ public class UserController {
   //user stats 
   @GetMapping("/users/{id}")
   @ResponseStatus(HttpStatus.OK)
-  @ResponseBody
   public UserGetDTO getUser(@RequestHeader("Authorization") String authHeader, @PathVariable Long id){
     String token = userService.extractToken(authHeader); 
     userService.validateToken(token); 
@@ -74,7 +71,6 @@ public class UserController {
   //users overview 
   @GetMapping("/users")
   @ResponseStatus(HttpStatus.OK)
-  @ResponseBody
   @AuthorizationRequired
   public List<UserGetDTO> getAllUsers() {
     // fetch all users in the internal representation
@@ -90,7 +86,6 @@ public class UserController {
 
   //register  
   @PostMapping("/users")
-  @ResponseBody
   public ResponseEntity<UserGetDTO> createUser(@RequestBody UserPostDTO userPostDTO) {
     // convert API user to internal representation
     User userInput = DTOMapper.INSTANCE.convertUserPostDTOtoEntity(userPostDTO);
@@ -108,7 +103,6 @@ public class UserController {
 
   //login 
   @PostMapping("/users/login")
-  @ResponseBody 
   public ResponseEntity<UserGetDTO> loginUser(@RequestBody UserLoginDTO userLoginDTO) {
     User authUser = userService.loginUser(userLoginDTO.getUsername(), userLoginDTO.getPassword()); 
     String token = authUser.getToken();
@@ -122,11 +116,11 @@ public class UserController {
 
   //logout
   @PostMapping("/users/logout")
-  @ResponseBody
-  public ResponseEntity<Map<String, String>> logoutUser( @RequestHeader("Authorization") String authHeader) {
+  @ResponseStatus(HttpStatus.OK)
+  public Map<String, String> logoutUser(@RequestHeader("Authorization") String authHeader) {
 
     String token = userService.extractToken(authHeader);
     userService.logoutUser(token); 
-    return ResponseEntity.ok(Map.of("message", "Successfully logged out"));
+    return Map.of("message", "Successfully logged out");
   }
 }
