@@ -22,64 +22,67 @@ import ch.uzh.ifi.hase.soprafs24.repository.*;
 @Transactional
 public class GameService {
   
-  private final Logger log = LoggerFactory.getLogger(GameService.class);
-  private final WordGenerationService wordGenerationService;
-  private final GameRepository gameRepository;
-  private final PlayerRepository playerRepository;
-  private final UserRepository userRepository;
-  private final LobbyRepository lobbyRepository;
+    private final Logger log = LoggerFactory.getLogger(GameService.class);
+    private final WordGenerationService wordGenerationService;
+    private final GameRepository gameRepository;
+    private final PlayerRepository playerRepository;
+    private final UserRepository userRepository;
+    private final LobbyRepository lobbyRepository;
 
-  public GameService(WordGenerationService wordGenerationService, GameRepository gameRepository, PlayerRepository playerRepository, UserRepository userRepository, LobbyRepository lobbyRepository) {
-    this.wordGenerationService = wordGenerationService;
-    this.gameRepository = gameRepository;
-    this.playerRepository = playerRepository;
-    this.userRepository = userRepository;
-    this.lobbyRepository = lobbyRepository;
-  }
-
-  public void checkIfUserSpymaster(User user) {
-    Player player = playerRepository.findById(user.getId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found"));
-    if (player.getRole() != PlayerRole.SPYMASTER) {
-      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only spymasters can give hints");
+    public GameService(WordGenerationService wordGenerationService, GameRepository gameRepository, PlayerRepository playerRepository, UserRepository userRepository, LobbyRepository lobbyRepository) {
+        this.wordGenerationService = wordGenerationService;
+        this.gameRepository = gameRepository;
+        this.playerRepository = playerRepository;
+        this.userRepository = userRepository;
+        this.lobbyRepository = lobbyRepository;
     }
-  }
+
+    public void checkIfUserSpymaster(User user) {
+        Player player = playerRepository.findById(user.getId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found"));
+        if (player.getRole() != PlayerRole.SPYMASTER) {
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only spymasters can give hints");
+        }
+    }
     
-  public void validateHint(String hint, Integer wordCount, Long gameId) {
-    if (hint == null || hint.isEmpty() || hint.contains(" ")) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Hint cannot be empty and only one word is allowed");
+    public void validateHint(String hint, Integer wordCount, Long gameId) {
+        if (hint == null || hint.isEmpty() || hint.contains(" ")) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Hint cannot be empty and only one word is allowed");
+        }
+        if (wordCount == null || wordCount < 1) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Word count must be at least 1");
+        }
+        Game game = gameRepository.findById(gameId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+        game.setCurrentHint(hint, wordCount);
+        gameRepository.save(game);
     }
-    if (wordCount == null || wordCount < 1) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Word count must be at least 1");
-    }
-    Game game = gameRepository.findById(gameId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
-    game.setCurrentHint(hint, wordCount);
-    gameRepository.save(game);
-  }
 
-  public Game startOrGetGame(Long id, TeamColor startingTeam, GameMode gameMode, String theme) {
-    Optional<Game> optionalGame = gameRepository.findById(id);
-    Game game;
-        
-    if (optionalGame.isPresent()){
-        game = optionalGame.get();
-    } else {
-        game = new Game();
+    public Game startOrGetGame(Long id, TeamColor startingTeam, GameMode gameMode, String theme) {
+        Optional<Game> optionalGame = gameRepository.findById(id);
+            
+        if (optionalGame.isPresent()){
+            return optionalGame.get();
+        } 
+        Game game = new Game();
         game.setId(id);
         game.setStartingTeam(startingTeam);
         game.setTeamTurn(startingTeam); 
         game.setStatus("playing");
         game.setWinningTeam(null);
         game.setGameMode(gameMode);
-        gameRepository.save(game); 
 
-        List <String> words = generateWords(id, theme); 
-        game.setWords(words);
-        List <Card> board = assignColorsToWords(words, startingTeam);
-        game.setBoard(board);
+        try {
+            List <String> words = generateWords(game, theme); 
+            game.setWords(words);
 
-        gameRepository.save(game);
-    }
-    return game; 
+            List <Card> board = assignColorsToWords(words, startingTeam);
+            game.setBoard(board);
+
+            gameRepository.save(game);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to create a new game");
+        }
+        
+        return game; 
     }
 
     public List<Card> getBoard(Long id) {
@@ -211,14 +214,12 @@ public class GameService {
         return board;
         }
 
-    public List<String> generateWords(Long id, String theme){
-        Game game = gameRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game with id " + id + " not found."));
-        
+    public List<String> generateWords(Game game, String theme){
         if (game.getWords() != null && !game.getWords().isEmpty()){
             return game.getWords(); 
         }
 
-        Lobby lobby = lobbyRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
+        Lobby lobby = lobbyRepository.findById(game.getId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
         List<String> finalWords = new ArrayList<>();
         
         if (lobby.getCustomWords() != null && lobby.getGameMode() == GameMode.OWN_WORDS) { 
@@ -244,16 +245,15 @@ public class GameService {
             }
         }
         game.setWords(finalWords);
-        gameRepository.save(game);
         return finalWords;
     }
 
     private Card findWord(List<Card> words, String word) {
-      for (Card card : words) {
+        for (Card card : words) {
           if (card.getWord().equalsIgnoreCase(word)) {
               return card;
-          }
-      }
-      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Word not found in the game board");
+            }
+        }
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Word not found in the game board");
     }
 }

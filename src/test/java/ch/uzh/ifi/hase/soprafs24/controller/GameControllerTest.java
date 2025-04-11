@@ -144,42 +144,7 @@ public class GameControllerTest {
                     .content(asJsonString(hintDTO)))
                     .andExpect(status().isBadRequest());
         }
-    }
-    
-    @Nested
-    class GameWordsHandling {
-        
-        @Test
-        public void getGameWords_returnsWordsList() throws Exception {
-            // Configure mocks
-            List<String> mockWords = Arrays.asList("apple", "banana", "cherry", "dog", "elephant");
-            when(gameService.generateWords(1L, "default")).thenReturn(mockWords);
-            
-            // Perform the request
-            mockMvc.perform(get("/game/1/words"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$").isArray())
-                    .andExpect(jsonPath("$[0]").value("apple"))
-                    .andExpect(jsonPath("$[1]").value("banana"))
-                    .andExpect(jsonPath("$[2]").value("cherry"))
-                    .andExpect(jsonPath("$[3]").value("dog"))
-                    .andExpect(jsonPath("$[4]").value("elephant"));
-            
-            // Verify that service method was called correctly
-            verify(gameService).generateWords(1L, "default");
-        }
-        
-        @Test
-        public void getGameWords_gameNotFound_returns404() throws Exception {
-            // Configure mocks
-            when(gameService.generateWords(1L, "default"))
-                .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
-            
-            // Perform the request
-            mockMvc.perform(get("/game/1/words"))
-                    .andExpect(status().isNotFound());
-        }
-    }
+    }  
     
     @Nested
     class GameStartHandling {

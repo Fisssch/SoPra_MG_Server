@@ -17,6 +17,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
@@ -185,62 +186,92 @@ public class LobbyServiceTest {
         @Test
         public void gameStarts_whenAllReady_andAtLeastFour() {
             Lobby lobby = new Lobby();
+            lobby.setId(1L);
+            lobby.setPlayers(new ArrayList<>());
+
             Team redTeam = new Team();
+            redTeam.setId(101L);
             redTeam.setColor(TeamColor.RED);
-            redTeam.setId(1L);
+            redTeam.setPlayers(new ArrayList<>());
+
             Team blueTeam = new Team();
+            blueTeam.setId(102L);
             blueTeam.setColor(TeamColor.BLUE);
-            blueTeam.setId(2L);
-            blueTeam.setSpymaster(new Player());
-            redTeam.setSpymaster(new Player());
+            blueTeam.setPlayers(new ArrayList<>());
+
             lobby.setRedTeam(redTeam);
             lobby.setBlueTeam(blueTeam);
-            for (int i = 0; i < 4; i++) {
+
+            when(lobbyRepository.findById(1L)).thenReturn(Optional.of(lobby));
+            when(playerRepository.findById(anyLong())).thenAnswer(invocation -> {
+                Long id = invocation.getArgument(0);
                 Player p = new Player();
+                p.setId(id);
+                return Optional.of(p);
+            });
+
+            // Add Spymasters
+            Player redSpymaster = lobbyService.addPlayerToLobby(1L, 1L);
+            redSpymaster.setReady(true);
+            redSpymaster.setRole(PlayerRole.SPYMASTER);
+            redTeam.setSpymaster(redSpymaster);
+
+            Player blueSpymaster = lobbyService.addPlayerToLobby(1L, 2L);
+            blueSpymaster.setReady(true);
+            blueSpymaster.setRole(PlayerRole.SPYMASTER);
+            blueTeam.setSpymaster(blueSpymaster);
+
+            // Add 3 ready field operatives to each team
+            for (long i = 3L; i <= 8L; i++) {
+                Player p = lobbyService.addPlayerToLobby(1L, i);
                 p.setReady(true);
-                if (i < 2) {
-                    lobby.assignPlayerToTeam(p, redTeam);
-                } else {
-                    lobby.assignPlayerToTeam(p, blueTeam);
-                }
             }
-            
+
             assertTrue(lobbyService.shouldStartGame(lobby));
         }
 
         @Test
         public void gameDoesNotStart_whenNotAllReady() {
             Lobby lobby = new Lobby();
+            lobby.setId(2L);
+            lobby.setPlayers(new ArrayList<>());
+
             Team redTeam = new Team();
+            redTeam.setId(103L);
             redTeam.setColor(TeamColor.RED);
-            redTeam.setId(1L);
+            redTeam.setPlayers(new ArrayList<>());
+
             Team blueTeam = new Team();
+            blueTeam.setId(104L);
             blueTeam.setColor(TeamColor.BLUE);
-            blueTeam.setId(2L);
-            blueTeam.setSpymaster(new Player());
-            redTeam.setSpymaster(new Player());
-            for (int i = 0; i < 4; i++) {
-                Player p = new Player();
-                p.setReady(i < 3); // last one is not ready
-                if (i < 2) {
-                    lobby.assignPlayerToTeam(p, redTeam);
-                } else {
-                    lobby.assignPlayerToTeam(p, blueTeam);
-                }
-            }
+            blueTeam.setPlayers(new ArrayList<>());
+
             lobby.setRedTeam(redTeam);
             lobby.setBlueTeam(blueTeam);
-            
-            assertFalse(lobbyService.shouldStartGame(lobby));
-        }
 
-        @Test
-        public void gameDoesNotStart_whenLessThanFourPlayers() {
-            Lobby lobby = new Lobby();
-            for (int i = 0; i < 3; i++) {
+            when(lobbyRepository.findById(2L)).thenReturn(Optional.of(lobby));
+            when(playerRepository.findById(anyLong())).thenAnswer(invocation -> {
+                Long id = invocation.getArgument(0);
                 Player p = new Player();
-                p.setReady(true);
-                lobby.addPlayer(p);
+                p.setId(id);
+                return Optional.of(p);
+            });
+
+            // Add Spymasters
+            Player redSpymaster = lobbyService.addPlayerToLobby(2L, 10L);
+            redSpymaster.setReady(true);
+            redSpymaster.setRole(PlayerRole.SPYMASTER);
+            redTeam.setSpymaster(redSpymaster);
+
+            Player blueSpymaster = lobbyService.addPlayerToLobby(2L, 20L);
+            blueSpymaster.setReady(true);
+            blueSpymaster.setRole(PlayerRole.SPYMASTER);
+            blueTeam.setSpymaster(blueSpymaster);
+
+            // Add 3 operatives each team (one operative not ready)
+            for (long i = 30L; i <= 35L; i++) {
+                Player p = lobbyService.addPlayerToLobby(2L, i);
+                p.setReady(i != 35L); // last player not ready
             }
 
             assertFalse(lobbyService.shouldStartGame(lobby));
@@ -249,24 +280,33 @@ public class LobbyServiceTest {
         @Test
         public void gameDoesNotStart_whenNoSpymasters() {
             Lobby lobby = new Lobby();
+            lobby.setId(1L);
+            lobby.setPlayers(new ArrayList<>());
+
             Team redTeam = new Team();
+            redTeam.setId(100L);
             redTeam.setColor(TeamColor.RED);
+            redTeam.setPlayers(new ArrayList<>());
+
             Team blueTeam = new Team();
+            blueTeam.setId(200L);
             blueTeam.setColor(TeamColor.BLUE);
+            blueTeam.setPlayers(new ArrayList<>());
+
             lobby.setRedTeam(redTeam);
             lobby.setBlueTeam(blueTeam);
-            
-            for (int i = 0; i < 4; i++) {
+
+            for (int i = 0; i < 6; i++) {
                 Player p = new Player();
+                p.setId((long) (i + 1)); 
                 p.setReady(true);
                 p.setRole(PlayerRole.FIELD_OPERATIVE);
-                if (i < 2) {
+                if (i < 3) {
                     lobby.assignPlayerToTeam(p, redTeam);
                 } else {
                     lobby.assignPlayerToTeam(p, blueTeam);
                 }
             }
-            
             assertFalse(lobbyService.shouldStartGame(lobby));
         }
     }

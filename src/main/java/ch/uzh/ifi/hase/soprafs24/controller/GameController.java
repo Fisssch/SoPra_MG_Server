@@ -39,12 +39,13 @@ public class GameController {
         webSocketService.sendMessage("/topic/game/" + id + "/hint", hint);
     }
 
-    @GetMapping("/game/{id}/words")
-    @ResponseStatus(HttpStatus.OK)
-    @AuthorizationRequired
-    public List<String> getGameWords(@PathVariable Long id) {
-        return gameService.generateWords(id, "default");
-    } 
+    //@GetMapping("/game/{id}/words")
+    //@ResponseStatus(HttpStatus.OK)
+    //@AuthorizationRequired
+    //public List<String> getGameWords(@PathVariable Long id) {
+    //    List<String> words= gameService.generateWords(id, "default"); //call here with default since we never create new words here, just get current words from game 
+    //    return words;
+    //} 
 
     @PostMapping("/game/{id}/start")
     @ResponseStatus(HttpStatus.OK)

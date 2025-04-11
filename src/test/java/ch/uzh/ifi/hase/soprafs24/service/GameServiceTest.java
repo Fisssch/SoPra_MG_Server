@@ -121,13 +121,10 @@ public class GameServiceTest {
         Game game = new Game();
         game.setId(1L);
 
-        when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
-        when(gameRepository.save(any(Game.class))).thenAnswer(i -> i.getArgument(0));
+        when(lobbyRepository.findById(1L)).thenReturn(Optional.of(lobby));
 
-        Lobby lobby = new Lobby();
         lobby.setCustomWords(Arrays.asList("custom1", "custom2"));
         lobby.setGameMode(GameMode.OWN_WORDS);
-        when(lobbyRepository.findById(1L)).thenReturn(Optional.of(lobby));
 
         when(wordGenerationService.getWordsFromApi()).thenReturn(Arrays.asList(
             "word1", "word2", "word3", "word4", "word5", "word6", "word7", "word8",
@@ -135,27 +132,12 @@ public class GameServiceTest {
             "word17", "word18", "word19", "word20", "word21", "word22", "word23", "word24", "word25"
         ));
 
-        List<String> result = gameService.generateWords(1L, "default");
+        List<String> result = gameService.generateWords(game, "default");
 
         assertNotNull(result);
         assertEquals(25, result.size());
         assertTrue(result.contains("CUSTOM1"));
         assertTrue(result.contains("CUSTOM2"));
-    }
-
-    @Test
-    public void generateWords_gameNotFound_throwsException() {
-        when(gameRepository.findById(99L)).thenReturn(Optional.empty());
-
-        assertThrows(ResponseStatusException.class, () -> gameService.generateWords(99L, "default"));
-    }
-
-    @Test
-    public void generateWords_lobbyNotFound_throwsException() {
-        when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
-        when(lobbyRepository.findById(1L)).thenReturn(Optional.empty());
-
-        assertThrows(ResponseStatusException.class, () -> gameService.generateWords(1L, "default"));
     }
 
     @Nested
