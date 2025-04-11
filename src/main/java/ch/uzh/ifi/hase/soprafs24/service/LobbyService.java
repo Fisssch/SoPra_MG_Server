@@ -108,7 +108,7 @@ public class LobbyService {
         } else {
             player.setRole(PlayerRole.FIELD_OPERATIVE);
         }
-
+        player.setReady(false);
         playerRepository.save(player);
         lobby.addPlayer(player);
         teamRepository.save(assignedTeam);
