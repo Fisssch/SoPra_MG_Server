@@ -7,6 +7,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
+import java.util.Timer;
+import java.util.TimerTask;
+
+
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
 import ch.uzh.ifi.hase.soprafs24.constant.PlayerRole;
 import ch.uzh.ifi.hase.soprafs24.constant.TeamColor;
@@ -15,6 +20,7 @@ import ch.uzh.ifi.hase.soprafs24.entity.Player;
 import ch.uzh.ifi.hase.soprafs24.entity.Team;
 import ch.uzh.ifi.hase.soprafs24.repository.*;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyPlayerStatusDTO;
+
 
 @Service
 @Transactional
@@ -59,6 +65,7 @@ public class LobbyService {
         lobby.setGameMode(gameMode);
         lobby.setLobbyCode(generateLobbyCode());
 
+        lobby.setCreatedAt(Instant.now());
         // Save the lobby first to get an ID
         lobby = lobbyRepository.save(lobby);
 
@@ -75,6 +82,8 @@ public class LobbyService {
         lobby.setRedTeam(redTeam);
         lobby.setBlueTeam(blueTeam);
 
+        scheduleLobbyTimeout(lobby);
+
         return lobbyRepository.save(lobby);
     }
 
@@ -90,6 +99,11 @@ public class LobbyService {
         Lobby lobby = getLobbyById(lobbyId);
         if (lobby == null) return null;
 
+        // Prüfen, ob Spieler bereits in Lobby
+        if (lobby.getPlayers().stream().anyMatch(p -> p.getId().equals(playerId))) {
+            return player; // Spieler ist schon drin, nichts ändern
+        }
+
         long redCount = lobby.getPlayers().stream()
                 .filter(p -> TeamColor.RED.equals(p.getTeam().getColor()))
                 .count();
@@ -100,7 +114,6 @@ public class LobbyService {
 
         Team assignedTeam = redCount <= blueCount ? lobby.getRedTeam() : lobby.getBlueTeam();
         player.setTeam(assignedTeam);
-        playerRepository.save(player);
 
         if (assignedTeam.getSpymaster() == null) {
             player.setRole(PlayerRole.SPYMASTER);
@@ -108,6 +121,7 @@ public class LobbyService {
         } else {
             player.setRole(PlayerRole.FIELD_OPERATIVE);
         }
+
         player.setReady(false);
         playerRepository.save(player);
         lobby.addPlayer(player);
@@ -283,5 +297,41 @@ public class LobbyService {
 
         websocketService.sendMessage("/topic/lobby/" + lobbyId + "/playerStatus",
                 new LobbyPlayerStatusDTO(total, ready));
+    }
+    public void scheduleLobbyTimeout(Lobby lobby) {
+        Timer timer = new Timer();
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                Lobby currentLobby = getLobbyById(lobby.getId()); // <- neue Zeile
+                if (!currentLobby.isGameStarted()) {
+                    closeLobby(currentLobby.getId());
+                }
+            }
+        }, 10*60 * 1000); // 10 Minuten in Millisekunden
+    }
+    public void closeLobby(Long lobbyId) {
+        Lobby lobby = getLobbyById(lobbyId);
+
+        // Notify all players via WebSocket
+        websocketService.sendMessage("/topic/lobby/" + lobbyId + "/close", "CLOSED");
+
+        // Remove all players
+        for (Player player : lobby.getPlayers()) {
+            playerRepository.delete(player);
+        }
+
+        // Delete teams
+        if (lobby.getRedTeam() != null) {
+            teamRepository.delete(lobby.getRedTeam());
+        }
+        if (lobby.getBlueTeam() != null) {
+            teamRepository.delete(lobby.getBlueTeam());
+        }
+
+        // Delete the lobby itself
+        lobbyRepository.delete(lobby);
+
+        log.info("Lobby " + lobbyId + " has been closed due to inactivity.");
     }
 }

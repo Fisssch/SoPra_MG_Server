@@ -1,5 +1,7 @@
 package ch.uzh.ifi.hase.soprafs24.rest.dto;
 
+import java.time.Instant;
+
 public class LobbyResponseDTO {
     private Long id;
     private String lobbyName;
@@ -7,13 +9,14 @@ public class LobbyResponseDTO {
 
     private Integer lobbyCode;
 
+    private Instant createdAt;
 
-
-    public LobbyResponseDTO(Long id, String lobbyName, String gameMode, Integer lobbyCode) {
+    public LobbyResponseDTO(Long id, String lobbyName, String gameMode, Integer lobbyCode, Instant createdAt) {
         this.id = id;
         this.lobbyName = lobbyName;
         this.gameMode = gameMode;
         this.lobbyCode = lobbyCode;
+        this.createdAt = createdAt;
     }
 
     public Long getId() {
@@ -45,5 +48,11 @@ public class LobbyResponseDTO {
 
     public void setLobbyCode(Integer lobbyCode) {
         this.lobbyCode = lobbyCode;
+    }
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
     }
 }

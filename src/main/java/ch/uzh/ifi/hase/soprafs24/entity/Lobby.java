@@ -2,6 +2,7 @@ package ch.uzh.ifi.hase.soprafs24.entity;
 
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -34,6 +35,8 @@ public class Lobby extends DatabaseEntity {
     private boolean gameStarted = false;
 
     private List<String> customWords = new ArrayList<>();
+
+    private Instant createdAt;
     
     // --- Getter & Setter ---
 
@@ -57,6 +60,13 @@ public class Lobby extends DatabaseEntity {
         return gameMode;
     }
 
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
     public void setGameMode(GameMode gameMode) {
         if (gameMode != null)
             this.gameMode = gameMode;
