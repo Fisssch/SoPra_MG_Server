@@ -3,7 +3,10 @@ package ch.uzh.ifi.hase.soprafs24.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
+import ch.uzh.ifi.hase.soprafs24.annotation.AuthorizationRequired;
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
 import ch.uzh.ifi.hase.soprafs24.constant.TeamColor;
 import ch.uzh.ifi.hase.soprafs24.entity.Card;
@@ -11,12 +14,9 @@ import ch.uzh.ifi.hase.soprafs24.entity.Game;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GameStartDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GiveHintDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.makeGuessDTO;
-import ch.uzh.ifi.hase.soprafs24.service.*;
-
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
-
-import ch.uzh.ifi.hase.soprafs24.annotation.AuthorizationRequired;
+import ch.uzh.ifi.hase.soprafs24.service.GameService;
+import ch.uzh.ifi.hase.soprafs24.service.UserService;
+import ch.uzh.ifi.hase.soprafs24.service.WebsocketService;
 
 @RestController
 public class GameController {  
@@ -82,7 +82,11 @@ public class GameController {
             webSocketService.sendMessage("/topic/game/" + id + "/gameCompleted", team.name());
             gameService.updatePlayerStats(id, team);
         } else {
+            guessDTO.setTeamColor(team.name());
             webSocketService.sendMessage("/topic/game/" + id + "/guess", guessDTO);
         }
+        // Send the updated board to all clients
+        List<Card> updatedBoard = gameService.getBoard(id);
+        webSocketService.sendMessage("/topic/game/" + id + "/board", updatedBoard);
     } 
 }

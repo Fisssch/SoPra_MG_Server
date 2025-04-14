@@ -15,7 +15,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import ch.uzh.ifi.hase.soprafs24.constant.*;
 import ch.uzh.ifi.hase.soprafs24.entity.*;
-
 import ch.uzh.ifi.hase.soprafs24.repository.*;
 
 @Service
@@ -53,7 +52,7 @@ public class GameService {
         }
         Game game = gameRepository.findById(gameId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
         game.setCurrentHint(hint, wordCount);
-        gameRepository.save(game);
+        gameRepository.save(game);        
     }
 
     public Game startOrGetGame(Long id, TeamColor startingTeam, GameMode gameMode) {
