@@ -54,8 +54,7 @@ public class GameController {
                       @RequestBody GameStartDTO gameStartDTO) {
         TeamColor startingTeam = gameStartDTO.getStartingTeam();
         GameMode gameMode = gameStartDTO.getGameMode();
-        String theme = gameStartDTO.getTheme();
-        return gameService.startOrGetGame(id, startingTeam, gameMode, theme);
+        return gameService.startOrGetGame(id, startingTeam, gameMode);
     }
 
     @GetMapping("/game/{id}/board")

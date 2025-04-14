@@ -56,12 +56,20 @@ public class GameService {
         gameRepository.save(game);
     }
 
-    public Game startOrGetGame(Long id, TeamColor startingTeam, GameMode gameMode, String theme) {
+    public Game startOrGetGame(Long id, TeamColor startingTeam, GameMode gameMode) {
         Optional<Game> optionalGame = gameRepository.findById(id);
             
         if (optionalGame.isPresent()){
             return optionalGame.get();
         } 
+
+        Lobby lobby = lobbyRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
+
+        String theme = lobby.getTheme(); 
+        if (theme != null && !theme.equalsIgnoreCase("default") && gameMode != GameMode.THEME) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Theme provided but game mode is not THEME");
+        }
+
         Game game = new Game();
         game.setId(id);
         game.setStartingTeam(startingTeam);
