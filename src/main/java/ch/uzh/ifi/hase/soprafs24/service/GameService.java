@@ -13,25 +13,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import ch.uzh.ifi.hase.soprafs24.constant.CardColor;
-import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
-import ch.uzh.ifi.hase.soprafs24.constant.PlayerRole;
-import ch.uzh.ifi.hase.soprafs24.constant.TeamColor;
-import ch.uzh.ifi.hase.soprafs24.entity.Card;
-import ch.uzh.ifi.hase.soprafs24.entity.Game;
-import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
-import ch.uzh.ifi.hase.soprafs24.entity.Player;
-import ch.uzh.ifi.hase.soprafs24.entity.User;
-import ch.uzh.ifi.hase.soprafs24.repository.GameRepository;
-import ch.uzh.ifi.hase.soprafs24.repository.LobbyRepository;
-import ch.uzh.ifi.hase.soprafs24.repository.PlayerRepository;
-import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs24.constant.*;
+import ch.uzh.ifi.hase.soprafs24.entity.*;
+import ch.uzh.ifi.hase.soprafs24.repository.*;
 
 @Service
 @Transactional
 public class GameService {
-
-    private final WebsocketService webSocketService;
   
     private final Logger log = LoggerFactory.getLogger(GameService.class);
     private final WordGenerationService wordGenerationService;
@@ -40,13 +28,12 @@ public class GameService {
     private final UserRepository userRepository;
     private final LobbyRepository lobbyRepository;
 
-    public GameService(WordGenerationService wordGenerationService, GameRepository gameRepository, PlayerRepository playerRepository, UserRepository userRepository, LobbyRepository lobbyRepository, WebsocketService webSocketService) {
+    public GameService(WordGenerationService wordGenerationService, GameRepository gameRepository, PlayerRepository playerRepository, UserRepository userRepository, LobbyRepository lobbyRepository) {
         this.wordGenerationService = wordGenerationService;
         this.gameRepository = gameRepository;
         this.playerRepository = playerRepository;
         this.userRepository = userRepository;
         this.lobbyRepository = lobbyRepository;
-        this.webSocketService = webSocketService;
     }
 
     public void checkIfUserSpymaster(User user) {
@@ -65,8 +52,7 @@ public class GameService {
         }
         Game game = gameRepository.findById(gameId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
         game.setCurrentHint(hint, wordCount);
-        gameRepository.save(game);
-        
+        gameRepository.save(game);        
     }
 
     public Game startOrGetGame(Long id, TeamColor startingTeam, GameMode gameMode, String theme) {
@@ -176,10 +162,6 @@ public class GameService {
           }
         }
         gameRepository.save(game);
-
-        // Send the updated team turn via WebSocket
-        webSocketService.sendMessage("/topic/game/" + id + "/turn", Map.of("teamTurn", game.getTeamTurn().name()));
-
         return result;
     }
 

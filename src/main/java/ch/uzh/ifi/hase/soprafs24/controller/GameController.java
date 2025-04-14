@@ -3,14 +3,7 @@ package ch.uzh.ifi.hase.soprafs24.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import ch.uzh.ifi.hase.soprafs24.annotation.AuthorizationRequired;
@@ -90,6 +83,7 @@ public class GameController {
             webSocketService.sendMessage("/topic/game/" + id + "/gameCompleted", team.name());
             gameService.updatePlayerStats(id, team);
         } else {
+            guessDTO.setTeamColor(team.name());
             webSocketService.sendMessage("/topic/game/" + id + "/guess", guessDTO);
         }
         // Send the updated board to all clients
