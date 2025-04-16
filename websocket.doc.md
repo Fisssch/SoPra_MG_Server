@@ -15,4 +15,4 @@
 | /topic/game/{id}/hint | Hint is given | `hint: string, wordsCount: int, teamId: long` |
 | /topic/game/{id}/guess | Guess is made | `teamColor: string, wordStr: string` <- Team Color isch color vo team wo als nöchsts dra isch mit guesse |
 | /topic/game/{id}/gameCompleted | Game finished. | `Color of winning team` |
-
+| /topic/game/{id}/updatedBoard | Sends the updated gameboard after a guess. | updatedboard: List <Card> <- list of all cards on the board, each containing a word, color and guessed status. |
