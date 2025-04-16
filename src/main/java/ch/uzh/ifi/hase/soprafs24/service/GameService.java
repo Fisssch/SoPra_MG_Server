@@ -140,6 +140,7 @@ public class GameService {
             word.setGuessed(true);
             game.setWinningTeam(opponentTeam);
             game.setStatus("finished");
+            resetLobbyGameStarted(game.getId()); //reset gameStarted state in loby 
             user.addBlackCardGuess();
             userRepository.save(user);
             result = Map.entry(true, opponentTeam);
@@ -160,6 +161,7 @@ public class GameService {
             if (leftToGuess == 0) {
                 game.setWinningTeam(opponentTeam);
                 game.setStatus("finished");
+                resetLobbyGameStarted(game.getId()); //reset gameStarted state in loby 
                 result = Map.entry(true, opponentTeam);
             } else
                 result = Map.entry(false, opponentTeam);
@@ -174,6 +176,7 @@ public class GameService {
           if (leftToGuess == 0) {
               game.setWinningTeam(teamColor);
               game.setStatus("finished");
+              resetLobbyGameStarted(game.getId()); //reset gameStarted state in loby 
               result = Map.entry(true, teamColor);
           } else {
               if (game.getGuessedInHint() >= game.getCurrentHint().getValue()) {
@@ -277,5 +280,12 @@ public class GameService {
             }
         }
         throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Word not found in the game board");
+    }
+
+    private void resetLobbyGameStarted(Long gameId) {
+        Lobby lobby = lobbyRepository.findById(gameId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
+        lobby.setGameStarted(false);
+        lobbyRepository.save(lobby);
     }
 }
