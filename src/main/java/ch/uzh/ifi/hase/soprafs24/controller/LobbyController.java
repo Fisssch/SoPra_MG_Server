@@ -92,6 +92,25 @@ public class LobbyController {
         webSocketService.sendMessage("/topic/lobby/" + id + "/gameMode", DTOMapper.INSTANCE.convertEntityToLobbyDTO(lobby));
     }
 
+    @PutMapping("/{id}/theme")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @AuthorizationRequired
+    public void setLobbyTheme(@PathVariable Long id, @RequestBody ThemeDTO themeDTO) {
+        lobbyService.setTheme(id, themeDTO.getTheme());
+        webSocketService.sendMessage("/topic/lobby/" + id + "/theme", themeDTO.getTheme());
+    }
+
+    @GetMapping("/{id}/theme")
+    @ResponseStatus(HttpStatus.OK)
+    @AuthorizationRequired
+    public ThemeDTO getLobbyTheme(@PathVariable Long id) {
+        Lobby lobby = lobbyService.getLobbyById(id);
+
+        ThemeDTO themeDTO = new ThemeDTO();
+        themeDTO.setTheme(lobby.getTheme() != null ? lobby.getTheme() : "default");
+        return themeDTO;
+    }
+
     @PutMapping("/{id}/{playerId}")
     @ResponseStatus(HttpStatus.OK)
     @AuthorizationRequired

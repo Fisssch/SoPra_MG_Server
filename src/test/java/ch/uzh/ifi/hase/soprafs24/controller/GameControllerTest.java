@@ -163,7 +163,7 @@ public class GameControllerTest {
             mockGame.setGameMode(GameMode.CLASSIC);
             
             // Configure mocks
-            when(gameService.startOrGetGame(1L, TeamColor.RED, GameMode.CLASSIC, "default"))
+            when(gameService.startOrGetGame(1L, TeamColor.RED, GameMode.CLASSIC))
                 .thenReturn(mockGame);
             
             // Perform the request

@@ -74,7 +74,7 @@ public class GameServiceTest {
     public void startOrGetGame_existingGame_returnsGame() {
         when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
 
-        Game result = gameService.startOrGetGame(1L, TeamColor.RED, GameMode.CLASSIC, "default");
+        Game result = gameService.startOrGetGame(1L, TeamColor.RED, GameMode.CLASSIC);
 
         assertEquals(game.getId(), result.getId());
         verify(gameRepository, never()).save(game); // Should not save because already exists
@@ -107,7 +107,7 @@ public class GameServiceTest {
         dummyLobby.setGameMode(GameMode.CLASSIC);
         when(lobbyRepository.findById(1L)).thenReturn(Optional.of(dummyLobby));
     
-        Game result = gameService.startOrGetGame(1L, TeamColor.RED, GameMode.CLASSIC, "default");
+        Game result = gameService.startOrGetGame(1L, TeamColor.RED, GameMode.CLASSIC);
     
         assertNotNull(result);
         assertEquals(25, result.getWords().size());

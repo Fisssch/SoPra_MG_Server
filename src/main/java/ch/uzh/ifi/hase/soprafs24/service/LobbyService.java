@@ -80,7 +80,9 @@ public class LobbyService {
         teamRepository.save(blueTeam);
 
         lobby.setRedTeam(redTeam);
-        lobby.setBlueTeam(blueTeam);
+        lobby.setBlueTeam(blueTeam); 
+
+        lobby.setTheme("default");
 
         scheduleLobbyTimeout(lobby);
 
@@ -90,8 +92,18 @@ public class LobbyService {
     public Lobby setGameMode(Long id, GameMode gameMode) {
         Lobby lobby = getLobbyById(id);
         lobby.setGameMode(gameMode);
+
+        if (gameMode != GameMode.THEME){
+            lobby.setTheme(null); 
+        }
         lobbyRepository.save(lobby);
         return lobby;
+    }
+
+    public Lobby setTheme(Long id, String theme){
+        Lobby lobby = getLobbyById(id); 
+        lobby.setTheme(theme.trim());
+        return lobbyRepository.save(lobby);
     }
 
     public Player addPlayerToLobby(Long lobbyId, Long playerId) {

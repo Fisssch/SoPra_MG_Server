@@ -37,6 +37,8 @@ public class Lobby extends DatabaseEntity {
     private List<String> customWords = new ArrayList<>();
 
     private Instant createdAt;
+  
+    private String theme; 
     
     // --- Getter & Setter ---
 
@@ -148,6 +150,14 @@ public class Lobby extends DatabaseEntity {
         if (!this.customWords.contains(word.toUpperCase())){
             this.customWords.add(word.toUpperCase());
         }
+    } 
+
+    public String getTheme() {
+        return theme;
+    }
+
+    public void setTheme(String theme) {
+        this.theme = theme;
     }
     
     /**

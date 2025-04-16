@@ -10,6 +10,7 @@
 | /topic/lobby/{id}/playerStatus | Total and ready players in the lobby are updated | `totalPlayers: number, readyPlayers: number` <- Number of players/ ready players |
 | /topic/lobby/{id}/customWords | Custom word is added to the lobby | `customWords: List<string>` <- list with all the custom words |
 | /topic/lobby/{id}/close | Lobby is closed due to inactivity | `CLOSED` |
+| /topic/lobby/{id}/theme | new theme is set | `theme: string` <- string with current theme |
 | /topic/game/{id}/hint | Hint is given | `hint: string, wordsCount: int, teamId: long` |
 | /topic/game/{id}/guess | Guess is made | `teamColor: string, wordStr: string` <- Team Color isch color vo team wo als nöchsts dra isch mit guesse |
 | /topic/game/{id}/gameCompleted | Game finished. | `Color of winning team` |
