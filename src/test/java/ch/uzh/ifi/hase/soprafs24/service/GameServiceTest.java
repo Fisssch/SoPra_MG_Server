@@ -82,33 +82,33 @@ public class GameServiceTest {
 
     @Test
     public void startOrGetGame_newGame_createdSuccessfully() {
-        Game createdGame = new Game();
-        createdGame.setId(1L);
-    
         when(gameRepository.findById(1L))
-            .thenReturn(Optional.empty())  // first call -> no game found
-            .thenReturn(Optional.of(createdGame)); // second call -> return newly created game
-    
-        when(gameRepository.save(any(Game.class))).thenAnswer(i -> {
-            Game g = (Game) i.getArguments()[0];
-            g.setId(1L); 
+            .thenReturn(Optional.empty()); 
+
+        when(gameRepository.save(any(Game.class))).thenAnswer(invocation -> {
+            Game g = invocation.getArgument(0);
+            g.setId(1L);
             return g;
         });
-    
+
         when(wordGenerationService.getWordsFromApi()).thenReturn(Arrays.asList(
             "apple", "banana", "cherry", "dog", "cat", "tree", "house", "river",
             "car", "mountain", "bird", "school", "computer", "book", "phone",
             "chair", "sun", "moon", "star", "water", "pen", "desk", "cloud",
             "road", "train"
-        )); 
-    
+        ));
+
         Lobby dummyLobby = new Lobby();
+        dummyLobby.setId(1L);
         dummyLobby.setCustomWords(new ArrayList<>());
         dummyLobby.setGameMode(GameMode.CLASSIC);
+        dummyLobby.setTheme("default");
+        dummyLobby.setRedTeam(new Team());
+        dummyLobby.setBlueTeam(new Team());
         when(lobbyRepository.findById(1L)).thenReturn(Optional.of(dummyLobby));
-    
+
         Game result = gameService.startOrGetGame(1L, TeamColor.RED, GameMode.CLASSIC);
-    
+
         assertNotNull(result);
         assertEquals(25, result.getWords().size());
         assertEquals(25, result.getBoard().size());
@@ -276,6 +276,11 @@ public class GameServiceTest {
             game.setTeamTurn(TeamColor.RED);
             game.setStatus("playing");
             game.setCurrentHint("hint", 2);
+
+            //Setup lobby
+            Lobby dummyLobby = new Lobby();
+            dummyLobby.setId(1L); 
+            when(lobbyRepository.findById(1L)).thenReturn(Optional.of(dummyLobby));
             
             // Create a board with a red card
             List<Card> board = new ArrayList<>();
@@ -332,6 +337,11 @@ public class GameServiceTest {
             game.setTeamTurn(TeamColor.RED);
             game.setStatus("playing");
             game.setCurrentHint("hint", 2);
+
+            //Setup lobby
+            Lobby dummyLobby = new Lobby();
+            dummyLobby.setId(1L); 
+            when(lobbyRepository.findById(1L)).thenReturn(Optional.of(dummyLobby));
             
             // Create a board with a black card
             List<Card> board = new ArrayList<>();
@@ -391,6 +401,11 @@ public class GameServiceTest {
             game.setTeamTurn(TeamColor.RED);
             game.setStatus("playing");
             game.setCurrentHint("hint", 2);
+
+            //Setup lobby
+            Lobby dummyLobby = new Lobby();
+            dummyLobby.setId(1L); 
+            when(lobbyRepository.findById(1L)).thenReturn(Optional.of(dummyLobby));
             
             // Create a board with one remaining red card
             List<Card> board = new ArrayList<>();
