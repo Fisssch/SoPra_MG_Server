@@ -39,7 +39,8 @@ public class LobbyController {
                 lobby.getId(),
                 lobby.getLobbyName(),
                 lobby.getGameMode().name(),
-                lobby.getLobbyCode()
+                lobby.getLobbyCode(),
+                lobby.getCreatedAt()
         );
     }
 
@@ -60,7 +61,8 @@ public class LobbyController {
                 lobby.getId(),
                 lobby.getLobbyName(),
                 lobby.getGameMode().name(),
-                lobby.getLobbyCode()
+                lobby.getLobbyCode(),
+                lobby.getCreatedAt()
         );
     }
 
@@ -77,7 +79,8 @@ public class LobbyController {
                 lobby.getId(),
                 lobby.getLobbyName(),
                 lobby.getGameMode().name(),
-                lobby.getLobbyCode()
+                lobby.getLobbyCode(),
+                lobby.getCreatedAt()
         );
     }
 
