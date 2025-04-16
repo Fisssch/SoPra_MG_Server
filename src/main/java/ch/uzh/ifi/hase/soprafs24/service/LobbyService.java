@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -20,7 +21,8 @@ import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs24.entity.Player;
 import ch.uzh.ifi.hase.soprafs24.entity.Team;
 import ch.uzh.ifi.hase.soprafs24.repository.*;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyPlayerStatusDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyPlayerDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyPlayersResponseDTO;
 
 
 @Service
@@ -32,12 +34,14 @@ public class LobbyService {
     private final PlayerRepository playerRepository;
     private final TeamRepository teamRepository;
     private final WebsocketService websocketService;
+    private final UserRepository userRepository; 
 
-    public LobbyService(LobbyRepository lobbyRepository, PlayerRepository playerRepository, TeamRepository teamRepository, WebsocketService websocketService) {
+    public LobbyService(LobbyRepository lobbyRepository, PlayerRepository playerRepository, TeamRepository teamRepository, WebsocketService websocketService, UserRepository userRepository) {
         this.playerRepository = playerRepository;
         this.lobbyRepository = lobbyRepository;
         this.teamRepository = teamRepository;
         this.websocketService = websocketService;
+        this.userRepository = userRepository;
     }
     
     public Lobby getOrCreateLobby(Integer lobbyCode) {
@@ -317,14 +321,33 @@ public class LobbyService {
         return (int) (Math.random() * 9000) + 1000;
     }
 
-    private void sendLobbyPlayerStatusUpdate(Long lobbyId) {
+    public LobbyPlayersResponseDTO sendLobbyPlayerStatusUpdate(Long lobbyId) {
         Lobby lobby = getLobbyById(lobbyId);
-        int total = lobby.getPlayers().size();
-        int ready = (int) lobby.getPlayers().stream().filter(p -> Boolean.TRUE.equals(p.getReady())).count();
-
-        websocketService.sendMessage("/topic/lobby/" + lobbyId + "/playerStatus",
-                new LobbyPlayerStatusDTO(total, ready));
+    
+        List<LobbyPlayerDTO> playerDTOs = lobby.getPlayers().stream()
+            .map(player -> {
+                String username = userRepository.findById(player.getId())
+                        .map(user -> user.getUsername())
+                        .orElse("UNKNOWN");
+    
+                return new LobbyPlayerDTO(
+                    username,
+                    player.getRole() != null ? player.getRole().name() : "UNASSIGNED",
+                    player.getTeam() != null ? player.getTeam().getColor().name() : "NONE",
+                    Boolean.TRUE.equals(player.getReady())
+                );
+            })
+            .toList();
+    
+        int total = playerDTOs.size();
+        int ready = (int) playerDTOs.stream().filter(LobbyPlayerDTO::isReady).count();
+    
+        LobbyPlayersResponseDTO response = new LobbyPlayersResponseDTO(total, ready, playerDTOs);
+    
+        websocketService.sendMessage("/topic/lobby/" + lobbyId + "/playerStatus", response);
+        return response;
     }
+
 
     public void scheduleLobbyTimeout(Lobby lobby) {
         Timer timer = new Timer();
