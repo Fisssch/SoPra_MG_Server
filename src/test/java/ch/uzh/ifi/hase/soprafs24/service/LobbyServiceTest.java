@@ -38,7 +38,22 @@ public class LobbyServiceTest {
         lobbyService = new LobbyService(lobbyRepository, playerRepository, teamRepository, websocketService);
 
         when(lobbyRepository.save(any(Lobby.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+                .thenAnswer(invocation -> {
+                    Lobby lobby = invocation.getArgument(0);
+                    if (lobby.getId() == null) {
+                        lobby.setId(1L); // oder ein Zähler für mehrere Lobbys
+                    }
+                    return lobby;
+                });
+
+        when(teamRepository.save(any(Team.class)))
+                .thenAnswer(invocation -> {
+                    Team team = invocation.getArgument(0);
+                    if (team.getId() == null) {
+                        team.setId((long) (Math.random() * 1000)); // zufällige ID oder auch fixiert
+                    }
+                    return team;
+                });
     }
 
     @Nested

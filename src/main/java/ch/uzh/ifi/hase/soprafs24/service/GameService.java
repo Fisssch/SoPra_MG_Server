@@ -28,14 +28,26 @@ public class GameService {
     private final PlayerRepository playerRepository;
     private final UserRepository userRepository;
     private final LobbyRepository lobbyRepository;
+    private final LobbyService lobbyService;
+    private final WebsocketService websocketService;
     private final Map<Long, Object> locks = new ConcurrentHashMap<>();
 
-    public GameService(WordGenerationService wordGenerationService, GameRepository gameRepository, PlayerRepository playerRepository, UserRepository userRepository, LobbyRepository lobbyRepository) {
+    public GameService(
+            WordGenerationService wordGenerationService,
+            GameRepository gameRepository,
+            PlayerRepository playerRepository,
+            UserRepository userRepository,
+            LobbyRepository lobbyRepository,
+            LobbyService lobbyService,
+            WebsocketService websocketService
+    ) {
         this.wordGenerationService = wordGenerationService;
         this.gameRepository = gameRepository;
         this.playerRepository = playerRepository;
         this.userRepository = userRepository;
         this.lobbyRepository = lobbyRepository;
+        this.lobbyService = lobbyService;
+        this.websocketService = websocketService;
     }
 
     public void checkIfUserSpymaster(User user) {
@@ -143,6 +155,7 @@ public class GameService {
             resetLobbyGameStarted(game.getId()); //reset gameStarted state in loby 
             user.addBlackCardGuess();
             userRepository.save(user);
+            updateLobbyAndNotifyEnd(game);
             result = Map.entry(true, opponentTeam);
         } 
         // Neutral card guess
@@ -189,6 +202,12 @@ public class GameService {
         }
         gameRepository.save(game);
         return result;
+    }
+
+    private void updateLobbyAndNotifyEnd(Game game) {
+        resetLobbyGameStarted(game.getId());
+
+        websocketService.sendMessage("/topic/lobby/" + game.getId() + "/end", true);
     }
 
     public void updatePlayerStats(Long id, TeamColor teamColor) {
@@ -286,6 +305,23 @@ public class GameService {
         Lobby lobby = lobbyRepository.findById(gameId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
         lobby.setGameStarted(false);
+        lobby.setCreatedAt(java.time.Instant.now()); // optional: Reset countdown
         lobbyRepository.save(lobby);
+
+        Long redTeamId = lobby.getRedTeam().getId();
+        Long blueTeamId = lobby.getBlueTeam().getId();
+
+        List<Player> redPlayers = playerRepository.findByTeamId(redTeamId);
+        List<Player> bluePlayers = playerRepository.findByTeamId(blueTeamId);
+
+        for (Player player : redPlayers) {
+            player.setReady(false);
+            playerRepository.save(player);
+        }
+
+        for (Player player : bluePlayers) {
+            player.setReady(false);
+            playerRepository.save(player);
+        }
     }
-}
+    }
