@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +28,7 @@ public class GameService {
     private final PlayerRepository playerRepository;
     private final UserRepository userRepository;
     private final LobbyRepository lobbyRepository;
+    private final Map<Long, Object> locks = new ConcurrentHashMap<>();
 
     public GameService(WordGenerationService wordGenerationService, GameRepository gameRepository, PlayerRepository playerRepository, UserRepository userRepository, LobbyRepository lobbyRepository) {
         this.wordGenerationService = wordGenerationService;
@@ -56,40 +58,53 @@ public class GameService {
     }
 
     public Game startOrGetGame(Long id, TeamColor startingTeam, GameMode gameMode) {
+        //first check if game already present 
         Optional<Game> optionalGame = gameRepository.findById(id);
-            
         if (optionalGame.isPresent()){
             return optionalGame.get();
         } 
 
-        Lobby lobby = lobbyRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
+        //per-id lock to avoid race conditions 
+        Object lock = locks.computeIfAbsent(id, k -> new Object()); 
+        synchronized (lock) {
+            try {
+                //again check if game was created while waiting 
+                optionalGame = gameRepository.findById(id);
+                if (optionalGame.isPresent()) {
+                    return optionalGame.get();
+                }
+                Lobby lobby = lobbyRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
+                String theme = lobby.getTheme(); 
 
-        String theme = lobby.getTheme(); 
-        if (theme != null && !theme.equalsIgnoreCase("default") && gameMode != GameMode.THEME) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Theme provided but game mode is not THEME");
-        }
+                if (theme != null && !theme.equalsIgnoreCase("default") && gameMode != GameMode.THEME) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Theme provided but game mode is not THEME");
+                }
 
-        Game game = new Game();
-        game.setId(id);
-        game.setStartingTeam(startingTeam);
-        game.setTeamTurn(startingTeam); 
-        game.setStatus("playing");
-        game.setWinningTeam(null);
-        game.setGameMode(gameMode);
+                Game game = new Game();
+                game.setId(id);
+                game.setStartingTeam(startingTeam);
+                game.setTeamTurn(startingTeam); 
+                game.setStatus("playing");
+                game.setWinningTeam(null);
+                game.setGameMode(gameMode);
 
-        try {
-            List <String> words = generateWords(game, theme); 
-            game.setWords(words);
-
-            List <Card> board = assignColorsToWords(words, startingTeam);
-            game.setBoard(board);
-
-            gameRepository.save(game);
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to create a new game");
-        }
+                try {
+                    List <String> words = generateWords(game, theme); 
+                    game.setWords(words);
         
-        return game; 
+                    List <Card> board = assignColorsToWords(words, startingTeam);
+                    game.setBoard(board);
+        
+                    gameRepository.save(game);
+                    return game; 
+
+                } catch (Exception e) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to create a new game: " + e.getMessage(), e);
+                }
+            } finally {
+                locks.remove(id); 
+            }
+        }
     }
 
     public List<Card> getBoard(Long id) {
@@ -125,6 +140,7 @@ public class GameService {
             word.setGuessed(true);
             game.setWinningTeam(opponentTeam);
             game.setStatus("finished");
+            resetLobbyGameStarted(game.getId()); //reset gameStarted state in loby 
             user.addBlackCardGuess();
             userRepository.save(user);
             result = Map.entry(true, opponentTeam);
@@ -145,6 +161,7 @@ public class GameService {
             if (leftToGuess == 0) {
                 game.setWinningTeam(opponentTeam);
                 game.setStatus("finished");
+                resetLobbyGameStarted(game.getId()); //reset gameStarted state in loby 
                 result = Map.entry(true, opponentTeam);
             } else
                 result = Map.entry(false, opponentTeam);
@@ -159,6 +176,7 @@ public class GameService {
           if (leftToGuess == 0) {
               game.setWinningTeam(teamColor);
               game.setStatus("finished");
+              resetLobbyGameStarted(game.getId()); //reset gameStarted state in loby 
               result = Map.entry(true, teamColor);
           } else {
               if (game.getGuessedInHint() >= game.getCurrentHint().getValue()) {
@@ -262,5 +280,12 @@ public class GameService {
             }
         }
         throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Word not found in the game board");
+    }
+
+    private void resetLobbyGameStarted(Long gameId) {
+        Lobby lobby = lobbyRepository.findById(gameId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
+        lobby.setGameStarted(false);
+        lobbyRepository.save(lobby);
     }
 }

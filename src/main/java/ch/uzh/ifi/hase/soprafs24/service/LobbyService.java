@@ -266,6 +266,7 @@ public class LobbyService {
 
         if (shouldStartGame(lobby)) {
             lobby.setGameStarted(true);
+            lobbyRepository.save(lobby); 
             websocketService.sendMessage("/topic/lobby/" + lobbyId + "/start", true);
         }
         return player;
