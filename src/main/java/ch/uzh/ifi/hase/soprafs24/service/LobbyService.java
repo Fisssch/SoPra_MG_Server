@@ -298,20 +298,27 @@ public class LobbyService {
         websocketService.sendMessage("/topic/lobby/" + lobbyId + "/playerStatus",
                 new LobbyPlayerStatusDTO(total, ready));
     }
+
     public void scheduleLobbyTimeout(Lobby lobby) {
         Timer timer = new Timer();
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                Lobby currentLobby = getLobbyById(lobby.getId()); // <- neue Zeile
+                Lobby currentLobby = getLobbyById(lobby.getId());
                 if (!currentLobby.isGameStarted()) {
                     closeLobby(currentLobby.getId());
                 }
             }
         }, 10*60 * 1000); // 10 Minuten in Millisekunden
     }
+    
     public void closeLobby(Long lobbyId) {
-        Lobby lobby = getLobbyById(lobbyId);
+        Lobby lobby;
+        try {
+            lobby = getLobbyById(lobbyId);
+        }
+        catch (Exception ex)
+        { return; } // Lobby already closed
 
         // Notify all players via WebSocket
         websocketService.sendMessage("/topic/lobby/" + lobbyId + "/close", "CLOSED");
