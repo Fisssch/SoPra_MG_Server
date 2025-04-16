@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -290,12 +291,26 @@ public class LobbyService {
     }
 
     public boolean shouldStartGame(Lobby lobby) {
-        return lobby.getPlayers().size() >= 4 &&
-                lobby.getRedTeam().getSpymaster() != null &&
-                lobby.getBlueTeam().getSpymaster() != null &&
-                lobby.getRedTeam().getPlayers().size() >= 2 &&
-                lobby.getBlueTeam().getPlayers().size() >= 2 &&
-                lobby.getPlayers().stream().allMatch(p -> Boolean.TRUE.equals(p.getReady()));
+        if (!lobby.getPlayers().stream().allMatch(p -> Boolean.TRUE.equals(p.getReady()))) {
+            return false;
+        }
+        if (lobby.getPlayers().size() < 4) {
+            websocketService.sendMessage("/topic/lobby/" + lobby.getId() + "/readyError", "Not enough players in the lobby to start the game.");
+            return false;
+        }
+        if (lobby.getRedTeam().getSpymaster() == null) {
+            websocketService.sendMessage("/topic/lobby/" + lobby.getId() + "/readyError", "Red team needs a spymaster to start the game.");
+            return false;
+        }
+        if (lobby.getBlueTeam().getSpymaster() == null) {
+            websocketService.sendMessage("/topic/lobby/" + lobby.getId() + "/readyError", "Blue team needs a spymaster to start the game.");
+            return false;
+        }
+        if (lobby.getRedTeam().getPlayers().size() < 2 || lobby.getBlueTeam().getPlayers().size() < 2) {
+            websocketService.sendMessage("/topic/lobby/" + lobby.getId() + "/readyError", "Both teams need at least 2 players to start the game.");
+            return false;
+        }
+        return true;
     }
 
     private int generateLobbyCode() {
