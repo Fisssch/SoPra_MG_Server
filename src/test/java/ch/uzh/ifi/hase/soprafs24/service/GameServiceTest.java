@@ -46,6 +46,9 @@ public class GameServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private WebsocketService websocketService;
+
     @InjectMocks
     private GameService gameService;
 
@@ -56,6 +59,7 @@ public class GameServiceTest {
     public void setup() {
         MockitoAnnotations.openMocks(this);
 
+        doNothing().when(websocketService).sendMessage(anyString(), any());
         // Setup a dummy Game
         game = new Game();
         game.setId(1L);
@@ -270,34 +274,40 @@ public class GameServiceTest {
     class GuessTests {
         @Test
         public void makeGuess_correctTeamCard_success() {
-            // Setup game
             Game game = new Game();
             game.setId(1L);
             game.setTeamTurn(TeamColor.RED);
             game.setStatus("playing");
             game.setCurrentHint("hint", 2);
 
-            //Setup lobby
+            // Setup lobby with teams
             Lobby dummyLobby = new Lobby();
-            dummyLobby.setId(1L); 
+            dummyLobby.setId(1L);
+            Team redTeam = new Team();
+            redTeam.setId(10L);
+            Team blueTeam = new Team();
+            blueTeam.setId(20L);
+            dummyLobby.setRedTeam(redTeam);
+            dummyLobby.setBlueTeam(blueTeam);
+
             when(lobbyRepository.findById(1L)).thenReturn(Optional.of(dummyLobby));
-            
-            // Create a board with a red card
+            when(playerRepository.findByTeamId(10L)).thenReturn(List.of());
+            when(playerRepository.findByTeamId(20L)).thenReturn(List.of());
+
+            // Create board
             List<Card> board = new ArrayList<>();
             Card redCard = new Card("APPLE", CardColor.RED);
             board.add(redCard);
             game.setBoard(board);
-            
+
             when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
-            
-            // Make the guess
+
             Map.Entry<Boolean, TeamColor> result = gameService.makeGuess(1L, TeamColor.RED, "APPLE", new User());
-            
-            // Verify results
-            assertTrue(result.getKey()); // Game not over
-            assertEquals(TeamColor.RED, result.getValue()); // Still RED team's turn
-            assertTrue(redCard.isGuessed()); // Card marked as guessed
-            assertEquals(1, game.getGuessedInHint()); // Guess counter incremented
+
+            assertTrue(result.getKey());
+            assertEquals(TeamColor.RED, result.getValue());
+            assertTrue(redCard.isGuessed());
+            assertEquals(1, game.getGuessedInHint());
         }
         
         @Test
@@ -328,43 +338,46 @@ public class GameServiceTest {
             assertTrue(blueCard.isGuessed()); // Card marked as guessed
             assertEquals(TeamColor.BLUE, game.getTeamTurn()); // Team turn updated
         }
-        
+
         @Test
         public void makeGuess_blackCard_gameOver() {
-            // Setup game
             Game game = new Game();
             game.setId(1L);
             game.setTeamTurn(TeamColor.RED);
             game.setStatus("playing");
             game.setCurrentHint("hint", 2);
 
-            //Setup lobby
             Lobby dummyLobby = new Lobby();
-            dummyLobby.setId(1L); 
+            dummyLobby.setId(1L);
+            Team redTeam = new Team();
+            redTeam.setId(10L);
+            Team blueTeam = new Team();
+            blueTeam.setId(20L);
+            dummyLobby.setRedTeam(redTeam);
+            dummyLobby.setBlueTeam(blueTeam);
+
             when(lobbyRepository.findById(1L)).thenReturn(Optional.of(dummyLobby));
-            
-            // Create a board with a black card
+            when(playerRepository.findByTeamId(10L)).thenReturn(List.of());
+            when(playerRepository.findByTeamId(20L)).thenReturn(List.of());
+
             List<Card> board = new ArrayList<>();
             Card blackCard = new Card("APPLE", CardColor.BLACK);
             board.add(blackCard);
             game.setBoard(board);
-            
-            // Setup user
+
             User user = new User();
-            
+
             when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
             when(userRepository.save(any(User.class))).thenReturn(user);
-            
-            // Make the guess
+
             Map.Entry<Boolean, TeamColor> result = gameService.makeGuess(1L, TeamColor.RED, "APPLE", user);
-            
-            // Verify results
-            assertTrue(result.getKey()); // Game over
-            assertEquals(TeamColor.BLUE, result.getValue()); // BLUE team wins
-            assertTrue(blackCard.isGuessed()); // Card marked as guessed
-            assertEquals("finished", game.getStatus()); // Game marked as finished
-            assertEquals(TeamColor.BLUE, game.getWinningTeam()); // BLUE team won
-            verify(userRepository).save(user); // User black card stat updated
+
+            assertTrue(result.getKey());
+            assertEquals(TeamColor.BLUE, result.getValue());
+            assertTrue(blackCard.isGuessed());
+            assertEquals("finished", game.getStatus());
+            assertEquals(TeamColor.BLUE, game.getWinningTeam());
+            verify(userRepository).save(user);
         }
         
         @Test
@@ -392,38 +405,42 @@ public class GameServiceTest {
             assertEquals(TeamColor.BLUE, result.getValue()); // Turn switched to BLUE team
             assertTrue(neutralCard.isGuessed()); // Card marked as guessed
         }
-        
+
         @Test
         public void makeGuess_lastCardOfTeam_gameOver() {
-            // Setup game
             Game game = new Game();
             game.setId(1L);
             game.setTeamTurn(TeamColor.RED);
             game.setStatus("playing");
             game.setCurrentHint("hint", 2);
 
-            //Setup lobby
             Lobby dummyLobby = new Lobby();
-            dummyLobby.setId(1L); 
+            dummyLobby.setId(1L);
+            Team redTeam = new Team();
+            redTeam.setId(10L);
+            Team blueTeam = new Team();
+            blueTeam.setId(20L);
+            dummyLobby.setRedTeam(redTeam);
+            dummyLobby.setBlueTeam(blueTeam);
+
             when(lobbyRepository.findById(1L)).thenReturn(Optional.of(dummyLobby));
-            
-            // Create a board with one remaining red card
+            when(playerRepository.findByTeamId(10L)).thenReturn(List.of());
+            when(playerRepository.findByTeamId(20L)).thenReturn(List.of());
+
             List<Card> board = new ArrayList<>();
             Card redCard = new Card("APPLE", CardColor.RED);
             board.add(redCard);
             game.setBoard(board);
-            
+
             when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
-            
-            // Make the guess
+
             Map.Entry<Boolean, TeamColor> result = gameService.makeGuess(1L, TeamColor.RED, "APPLE", new User());
-            
-            // Verify results
-            assertTrue(result.getKey()); // Game over
-            assertEquals(TeamColor.RED, result.getValue()); // RED team wins
-            assertTrue(redCard.isGuessed()); // Card marked as guessed
-            assertEquals("finished", game.getStatus()); // Game marked as finished
-            assertEquals(TeamColor.RED, game.getWinningTeam()); // RED team won
+
+            assertTrue(result.getKey());
+            assertEquals(TeamColor.RED, result.getValue());
+            assertTrue(redCard.isGuessed());
+            assertEquals("finished", game.getStatus());
+            assertEquals(TeamColor.RED, game.getWinningTeam());
         }
         
         @Test
