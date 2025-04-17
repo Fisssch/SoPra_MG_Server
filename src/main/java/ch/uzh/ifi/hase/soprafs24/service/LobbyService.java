@@ -46,6 +46,10 @@ public class LobbyService {
         if (lobbyCode != null) {
             lobby = lobbyRepository.findByLobbyCode(lobbyCode)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby with code " + lobbyCode + " not found"));
+
+            if (Boolean.TRUE.equals(lobby.isGameStarted())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Game has already started");
+            }
         }
 
         if (lobby == null) {

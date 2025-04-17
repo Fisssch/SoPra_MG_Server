@@ -29,7 +29,6 @@ public class GameService {
     private final UserRepository userRepository;
     private final LobbyRepository lobbyRepository;
     private final LobbyService lobbyService;
-    private final WebsocketService websocketService;
     private final Map<Long, Object> locks = new ConcurrentHashMap<>();
 
     public GameService(
@@ -38,8 +37,7 @@ public class GameService {
             PlayerRepository playerRepository,
             UserRepository userRepository,
             LobbyRepository lobbyRepository,
-            LobbyService lobbyService,
-            WebsocketService websocketService
+            LobbyService lobbyService
     ) {
         this.wordGenerationService = wordGenerationService;
         this.gameRepository = gameRepository;
@@ -47,7 +45,6 @@ public class GameService {
         this.userRepository = userRepository;
         this.lobbyRepository = lobbyRepository;
         this.lobbyService = lobbyService;
-        this.websocketService = websocketService;
     }
 
     public void checkIfUserSpymaster(User user) {
@@ -206,8 +203,6 @@ public class GameService {
 
     private void updateLobbyAndNotifyEnd(Game game) {
         resetLobbyGameStarted(game.getId());
-
-        websocketService.sendMessage("/topic/lobby/" + game.getId() + "/end", true);
     }
 
     public void updatePlayerStats(Long id, TeamColor teamColor) {
