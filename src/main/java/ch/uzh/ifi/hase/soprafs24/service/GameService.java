@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +32,7 @@ public class GameService {
     private final UserRepository userRepository;
     private final LobbyRepository lobbyRepository;
     private final Map<Long, Object> locks = new ConcurrentHashMap<>();
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     public GameService(WordGenerationService wordGenerationService, GameRepository gameRepository, PlayerRepository playerRepository, UserRepository userRepository, LobbyRepository lobbyRepository) {
         this.wordGenerationService = wordGenerationService;
@@ -144,6 +148,7 @@ public class GameService {
             user.addBlackCardGuess();
             userRepository.save(user);
             result = Map.entry(true, opponentTeam);
+            scheduleGameDeletion(game.getId()); //delete game 
         } 
         // Neutral card guess
         else if (word.getColor() == CardColor.NEUTRAL) {
@@ -163,6 +168,7 @@ public class GameService {
                 game.setStatus("finished");
                 resetLobbyGameStarted(game.getId()); //reset gameStarted state in loby 
                 result = Map.entry(true, opponentTeam);
+                scheduleGameDeletion(game.getId()); //delete game 
             } else
                 result = Map.entry(false, opponentTeam);
         }
@@ -178,6 +184,7 @@ public class GameService {
               game.setStatus("finished");
               resetLobbyGameStarted(game.getId()); //reset gameStarted state in loby 
               result = Map.entry(true, teamColor);
+              scheduleGameDeletion(game.getId()); //delete game 
           } else {
               if (game.getGuessedInHint() >= game.getCurrentHint().getValue()) {
                   game.setTeamTurn(opponentTeam);
@@ -205,6 +212,17 @@ public class GameService {
             }
             userRepository.save(user);
         }
+    }
+
+    public void scheduleGameDeletion(Long gameId) {
+        scheduler.schedule(() -> {
+            try {
+                gameRepository.deleteById(gameId);
+                System.out.println("Game with ID " + gameId + " has been deleted after game end.");
+            } catch (Exception e) {
+                System.err.println("Failed to delete game with ID " + gameId + ": " + e.getMessage());
+            }
+        }, 3, TimeUnit.SECONDS); // Delay of 3 seconds
     }
 
     /////////////////////// helper methods: ///////////////////////
