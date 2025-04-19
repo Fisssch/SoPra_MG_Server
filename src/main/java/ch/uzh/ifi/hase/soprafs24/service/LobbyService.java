@@ -247,6 +247,7 @@ public class LobbyService {
         }
 
         playerRepository.save(player);
+        sendLobbyPlayerStatusUpdate(lobbyId);
         return player;
     }
 

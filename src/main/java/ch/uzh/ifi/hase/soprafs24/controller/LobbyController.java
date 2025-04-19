@@ -265,4 +265,12 @@ public class LobbyController {
         Lobby lobby = lobbyService.getLobbyById(id);
         return lobby.getCustomWords();
     }
+
+    @GetMapping("/{id}/players/details")
+    @ResponseStatus(HttpStatus.OK)
+    @AuthorizationRequired
+    public LobbyPlayersResponseDTO getLobbyPlayersDetails(@PathVariable Long id) {
+        return lobbyService.sendLobbyPlayerStatusUpdate(id);
+    }
+
 }
