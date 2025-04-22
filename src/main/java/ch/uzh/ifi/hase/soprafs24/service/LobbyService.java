@@ -271,6 +271,7 @@ public class LobbyService {
 
         if (shouldStartGame(lobby)) {
             lobby.setGameStarted(true);
+            lobbyRepository.save(lobby); 
             websocketService.sendMessage("/topic/lobby/" + lobbyId + "/start", true);
         }
         return player;
@@ -292,6 +293,20 @@ public class LobbyService {
         }
 
         lobby.addCustomWord(word);
+        return lobbyRepository.save(lobby);
+    }
+
+    public Lobby removeCustomWord(Long id, String word) {
+        Lobby lobby = getLobbyById(id);
+        
+        if (lobby.getGameMode() != GameMode.OWN_WORDS) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot remove words unless in OWN_WORDS mode");
+        }
+    
+        if (!lobby.getCustomWords().removeIf(w -> w.equalsIgnoreCase(word))) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Word not found");
+        }
+    
         return lobbyRepository.save(lobby);
     }
 

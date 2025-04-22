@@ -5,6 +5,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +31,8 @@ public class GameService {
     private final PlayerRepository playerRepository;
     private final UserRepository userRepository;
     private final LobbyRepository lobbyRepository;
+    private final Map<Long, Object> locks = new ConcurrentHashMap<>();
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     public GameService(WordGenerationService wordGenerationService, GameRepository gameRepository, PlayerRepository playerRepository, UserRepository userRepository, LobbyRepository lobbyRepository) {
         this.wordGenerationService = wordGenerationService;
@@ -56,40 +62,53 @@ public class GameService {
     }
 
     public Game startOrGetGame(Long id, TeamColor startingTeam, GameMode gameMode) {
+        //first check if game already present 
         Optional<Game> optionalGame = gameRepository.findById(id);
-            
         if (optionalGame.isPresent()){
             return optionalGame.get();
         } 
 
-        Lobby lobby = lobbyRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
+        //per-id lock to avoid race conditions 
+        Object lock = locks.computeIfAbsent(id, k -> new Object()); 
+        synchronized (lock) {
+            try {
+                //again check if game was created while waiting 
+                optionalGame = gameRepository.findById(id);
+                if (optionalGame.isPresent()) {
+                    return optionalGame.get();
+                }
+                Lobby lobby = lobbyRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
+                String theme = lobby.getTheme(); 
 
-        String theme = lobby.getTheme(); 
-        if (theme != null && !theme.equalsIgnoreCase("default") && gameMode != GameMode.THEME) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Theme provided but game mode is not THEME");
-        }
+                if (theme != null && !theme.equalsIgnoreCase("default") && gameMode != GameMode.THEME) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Theme provided but game mode is not THEME");
+                }
 
-        Game game = new Game();
-        game.setId(id);
-        game.setStartingTeam(startingTeam);
-        game.setTeamTurn(startingTeam); 
-        game.setStatus("playing");
-        game.setWinningTeam(null);
-        game.setGameMode(gameMode);
+                Game game = new Game();
+                game.setId(id);
+                game.setStartingTeam(startingTeam);
+                game.setTeamTurn(startingTeam); 
+                game.setStatus("playing");
+                game.setWinningTeam(null);
+                game.setGameMode(gameMode);
 
-        try {
-            List <String> words = generateWords(game, theme); 
-            game.setWords(words);
-
-            List <Card> board = assignColorsToWords(words, startingTeam);
-            game.setBoard(board);
-
-            gameRepository.save(game);
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to create a new game");
-        }
+                try {
+                    List <String> words = generateWords(game, theme); 
+                    game.setWords(words);
         
-        return game; 
+                    List <Card> board = assignColorsToWords(words, startingTeam);
+                    game.setBoard(board);
+        
+                    gameRepository.save(game);
+                    return game; 
+
+                } catch (Exception e) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to create a new game: " + e.getMessage(), e);
+                }
+            } finally {
+                locks.remove(id); 
+            }
+        }
     }
 
     public List<Card> getBoard(Long id) {
@@ -125,9 +144,11 @@ public class GameService {
             word.setGuessed(true);
             game.setWinningTeam(opponentTeam);
             game.setStatus("finished");
+            resetLobbyGameStarted(game.getId()); //reset gameStarted state in loby 
             user.addBlackCardGuess();
             userRepository.save(user);
             result = Map.entry(true, opponentTeam);
+            scheduleGameDeletion(game.getId()); //delete game 
         } 
         // Neutral card guess
         else if (word.getColor() == CardColor.NEUTRAL) {
@@ -145,7 +166,9 @@ public class GameService {
             if (leftToGuess == 0) {
                 game.setWinningTeam(opponentTeam);
                 game.setStatus("finished");
+                resetLobbyGameStarted(game.getId()); //reset gameStarted state in loby 
                 result = Map.entry(true, opponentTeam);
+                scheduleGameDeletion(game.getId()); //delete game 
             } else
                 result = Map.entry(false, opponentTeam);
         }
@@ -159,7 +182,9 @@ public class GameService {
           if (leftToGuess == 0) {
               game.setWinningTeam(teamColor);
               game.setStatus("finished");
+              resetLobbyGameStarted(game.getId()); //reset gameStarted state in loby 
               result = Map.entry(true, teamColor);
+              scheduleGameDeletion(game.getId()); //delete game 
           } else {
               if (game.getGuessedInHint() >= game.getCurrentHint().getValue()) {
                   game.setTeamTurn(opponentTeam);
@@ -187,6 +212,17 @@ public class GameService {
             }
             userRepository.save(user);
         }
+    }
+
+    public void scheduleGameDeletion(Long gameId) {
+        scheduler.schedule(() -> {
+            try {
+                gameRepository.deleteById(gameId);
+                System.out.println("Game with ID " + gameId + " has been deleted after game end.");
+            } catch (Exception e) {
+                System.err.println("Failed to delete game with ID " + gameId + ": " + e.getMessage());
+            }
+        }, 3, TimeUnit.SECONDS); // Delay of 3 seconds
     }
 
     /////////////////////// helper methods: ///////////////////////
@@ -262,5 +298,12 @@ public class GameService {
             }
         }
         throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Word not found in the game board");
+    }
+
+    private void resetLobbyGameStarted(Long gameId) {
+        Lobby lobby = lobbyRepository.findById(gameId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
+        lobby.setGameStarted(false);
+        lobbyRepository.save(lobby);
     }
 }

@@ -251,6 +251,14 @@ public class LobbyController {
         webSocketService.sendMessage("/topic/lobby/" + id + "/customWords", updatedLobby.getCustomWords());
     }
 
+    @PutMapping("/{id}/customWord/remove")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @AuthorizationRequired
+    public void removeCustomWord(@PathVariable Long id, @RequestBody CustomWordDTO wordDTO) {
+        Lobby updatedLobby = lobbyService.removeCustomWord(id, wordDTO.getWord());
+        webSocketService.sendMessage("/topic/lobby/" + id + "/customWords", updatedLobby.getCustomWords());
+    }
+
     @GetMapping("/{id}/players")
     @ResponseStatus(HttpStatus.OK)
     @AuthorizationRequired
