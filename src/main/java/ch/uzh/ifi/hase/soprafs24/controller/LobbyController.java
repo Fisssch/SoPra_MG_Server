@@ -274,11 +274,4 @@ public class LobbyController {
         return lobby.getCustomWords();
     }
 
-    @GetMapping("/{id}/players/details")
-    @ResponseStatus(HttpStatus.OK)
-    @AuthorizationRequired
-    public LobbyPlayersResponseDTO getLobbyPlayersDetails(@PathVariable Long id) {
-        return lobbyService.sendLobbyPlayerStatusUpdate(id);
-    }
-
 }
