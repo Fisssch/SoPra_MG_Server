@@ -79,8 +79,10 @@ public class GameService {
                 }
                 Lobby lobby = lobbyRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
                 String theme = lobby.getTheme(); 
+                
+                GameMode actualMode = lobby.getGameMode();
 
-                if (theme != null && !theme.equalsIgnoreCase("default") && gameMode != GameMode.THEME) {
+                if (theme != null && !theme.equalsIgnoreCase("default") && actualMode != GameMode.THEME) {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Theme provided but game mode is not THEME");
                 }
 
