@@ -422,6 +422,7 @@ public class LobbyService {
         try {
             if (lobbyRepository.existsById(lobbyId)) {
                 lobbyRepository.deleteById(lobbyId);
+                lobbyTimers.remove(lobbyId);
             }
             } catch (Exception e) {
             log.warn("Error deleting lobby " + lobbyId, e);
