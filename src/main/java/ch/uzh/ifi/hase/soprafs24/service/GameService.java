@@ -158,7 +158,6 @@ public class GameService {
             resetLobbyGameStarted(game.getId()); //reset gameStarted state in loby 
             user.addBlackCardGuess();
             userRepository.save(user);
-            updateLobbyAndNotifyEnd(game);
             result = Map.entry(true, opponentTeam);
             scheduleGameDeletion(game.getId()); //delete game 
         } 
@@ -208,10 +207,6 @@ public class GameService {
         }
         gameRepository.save(game);
         return result;
-    }
-
-    private void updateLobbyAndNotifyEnd(Game game) {
-        resetLobbyGameStarted(game.getId());
     }
 
     public void updatePlayerStats(Long id, TeamColor teamColor) {

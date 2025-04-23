@@ -214,6 +214,7 @@ public class LobbyService {
         }
 
         lobby.assignPlayerToTeam(player, newTeam);
+        // If the player is a spymaster but the other team already has a spymaster set him to field operative, otherwise assign him to spymaster of new team
 
         if (player.getRole() == PlayerRole.SPYMASTER) {
             if (newTeam.getSpymaster() == null) {
@@ -238,6 +239,7 @@ public class LobbyService {
             role = PlayerRole.valueOf(roleStr.toUpperCase().replace(" ", "_"));
             player.setRole(role);
             if (role == PlayerRole.SPYMASTER) {
+                // If the player is set to spymaster, set the spymaster of the team to this player
                 Team team = player.getTeam();
                 if (team != null) {
                     if (team.getSpymaster() != null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Team already has a spymaster");
@@ -246,6 +248,7 @@ public class LobbyService {
                 }
             }
             if (oldRole == PlayerRole.SPYMASTER) {
+                // If the player was a spymaster, set the spymaster of the team to null
                 Team team = player.getTeam();
                 if (team != null && team.getSpymaster() != null && team.getSpymaster().getId().equals(player.getId())) {
                     team.setSpymaster(null);
@@ -358,19 +361,28 @@ public class LobbyService {
     public void scheduleLobbyTimeout(Lobby lobby) {
         Timer existing = lobbyTimers.remove(lobby.getId());
         if (existing != null) {
-            existing.cancel();
+            existing.cancel(); //stops old timer if it exists
         }
 
-        Timer timer = new Timer();
+        Timer timer = new Timer(); //create and schedule a new one 
         lobbyTimers.put(lobby.getId(), timer);
 
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                Lobby currentLobby = getLobbyById(lobby.getId());
-                if (!currentLobby.isGameStarted()) {
-                    closeLobby(currentLobby.getId());
-                    lobbyTimers.remove(lobby.getId());
+                try {
+                    Lobby currentLobby = getLobbyById(lobby.getId());
+                    if (!currentLobby.isGameStarted()) {
+                        closeLobby(currentLobby.getId());
+                    }
+                } catch (Exception e) {
+                    log.warn("Error in scheduled lobby timeout for lobby {}: {}", lobby.getId(), e.getMessage());
+                } finally {
+                    try {
+                        lobbyTimers.remove(lobby.getId());
+                    } catch (Exception e) {
+                        log.warn("Failed to remove timer for lobby {}: {}", lobby.getId(), e.getMessage());
+                    }
                 }
             }
         }, 10 * 60 * 1000);
@@ -422,7 +434,7 @@ public class LobbyService {
         try {
             if (lobbyRepository.existsById(lobbyId)) {
                 lobbyRepository.deleteById(lobbyId);
-                lobbyTimers.remove(lobbyId);
+                stopLobbyTimer(lobbyId); 
             }
             } catch (Exception e) {
             log.warn("Error deleting lobby " + lobbyId, e);
