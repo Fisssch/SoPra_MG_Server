@@ -28,6 +28,7 @@ public class LobbyServiceTest {
     private PlayerRepository playerRepository;
     private WebsocketService websocketService;
     private TeamRepository teamRepository;
+    private UserRepository userRepository;
 
     @BeforeEach
     public void setup() {
@@ -35,7 +36,9 @@ public class LobbyServiceTest {
         playerRepository = Mockito.mock(PlayerRepository.class);
         websocketService = Mockito.mock(WebsocketService.class);
         teamRepository = Mockito.mock(TeamRepository.class);
-        lobbyService = new LobbyService(lobbyRepository, playerRepository, teamRepository, websocketService);
+        userRepository = Mockito.mock(UserRepository.class);
+
+        lobbyService = new LobbyService(lobbyRepository, playerRepository, teamRepository, websocketService, userRepository);
 
         when(lobbyRepository.save(any(Lobby.class)))
                 .thenAnswer(invocation -> {
@@ -129,6 +132,7 @@ public class LobbyServiceTest {
             player.setTeam(team);
             
             when(playerRepository.findById(1L)).thenReturn(Optional.of(player));
+            when(lobbyRepository.findById(1L)).thenReturn(Optional.of(lobby));
             
             // Act
             Player result = lobbyService.changePlayerRole(1L, 1L, "SPYMASTER");

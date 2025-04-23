@@ -262,15 +262,8 @@ public class LobbyController {
     @GetMapping("/{id}/players")
     @ResponseStatus(HttpStatus.OK)
     @AuthorizationRequired
-    public LobbyPlayerStatusDTO countPlayersLobby(@PathVariable Long id) {
-        Lobby lobby = lobbyService.getLobbyById(id);
-
-        int totalPlayers = lobby.getPlayers().size();
-        int readyPlayers = (int) lobby.getPlayers().stream()
-                                .filter(player -> Boolean.TRUE.equals(player.getReady()))
-                                .count(); //just count the players that have ready == true 
-
-        return new LobbyPlayerStatusDTO(totalPlayers, readyPlayers);
+    public LobbyPlayersResponseDTO countPlayersLobby(@PathVariable Long id) {
+        return lobbyService.sendLobbyPlayerStatusUpdate(id);
     }
 
     @GetMapping("/{id}/customWords")
@@ -280,4 +273,5 @@ public class LobbyController {
         Lobby lobby = lobbyService.getLobbyById(id);
         return lobby.getCustomWords();
     }
+
 }
