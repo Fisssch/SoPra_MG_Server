@@ -9,6 +9,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -147,8 +148,20 @@ public class LobbyService {
     }
 
     public void removePlayerFromLobby(Long lobbyId, Long playerId) {
-        Player player = playerRepository.findById(playerId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found with id: " + playerId));
-        Lobby lobby = getLobbyById(lobbyId);
+        Optional<Player> optionalPlayer = playerRepository.findById(playerId);
+        if (optionalPlayer.isEmpty()) {
+            log.warn("Tried to remove player " + playerId + " but they don't exist.");
+            return; // Just skip, sicne we already have deleted player 
+        }
+        Player player = optionalPlayer.get();
+        
+        Lobby lobby;
+        try {
+            lobby = getLobbyById(lobbyId);
+        } catch (ResponseStatusException e) {
+            log.warn("Tried to remove player from lobby " + lobbyId + " but the lobby doesn't exist.");
+            return;
+        }
 
         if (player.getRole() == PlayerRole.SPYMASTER) {
             Team team = player.getTeam();
@@ -365,21 +378,39 @@ public class LobbyService {
         // Notify all players via WebSocket
         websocketService.sendMessage("/topic/lobby/" + lobbyId + "/close", "CLOSED");
 
-        // Remove all players
-        for (Player player : lobby.getPlayers()) {
-            playerRepository.delete(player);
+        // Remove all players (if still exist)
+        if (lobby.getPlayers() != null) {
+            for (Player player : lobby.getPlayers()) {
+                if (player != null && playerRepository.existsById(player.getId())) {
+                    try {
+                        playerRepository.deleteById(player.getId());
+                    } catch (Exception e) {
+                        log.warn("Player already deleted or error during deletion: " + player.getId(), e);
+                    }
+                }
+            }
         }
 
-        // Delete teams
-        if (lobby.getRedTeam() != null) {
-            teamRepository.delete(lobby.getRedTeam());
-        }
-        if (lobby.getBlueTeam() != null) {
-            teamRepository.delete(lobby.getBlueTeam());
+        // Delete teams (if exist)
+        try {
+            if (lobby.getRedTeam() != null && teamRepository.existsById(lobby.getRedTeam().getId())) {
+                teamRepository.deleteById(lobby.getRedTeam().getId());
+            }
+            if (lobby.getBlueTeam() != null && teamRepository.existsById(lobby.getBlueTeam().getId())) {
+                teamRepository.deleteById(lobby.getBlueTeam().getId());
+            }
+            } catch (Exception e) {
+            log.warn("Error while deleting teams for lobby " + lobbyId, e);
         }
 
-        // Delete the lobby itself
-        lobbyRepository.delete(lobby);
+        // Delete the lobby (if still exists)
+        try {
+            if (lobbyRepository.existsById(lobbyId)) {
+                lobbyRepository.deleteById(lobbyId);
+            }
+            } catch (Exception e) {
+            log.warn("Error deleting lobby " + lobbyId, e);
+        }
 
         log.info("Lobby " + lobbyId + " has been closed due to inactivity.");
     }
