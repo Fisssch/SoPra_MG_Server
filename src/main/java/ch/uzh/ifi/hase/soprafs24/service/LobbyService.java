@@ -56,7 +56,9 @@ public class LobbyService {
             if (Boolean.TRUE.equals(lobby.isGameStarted())) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Game has already started");
             }
+            scheduleLobbyTimeout(lobby);
         }
+
 
         if (lobby == null) {
             return createLobby("Lobby " + generateLobbyCode(), GameMode.CLASSIC);
@@ -384,9 +386,13 @@ public class LobbyService {
 
 
     public void scheduleLobbyTimeout(Lobby lobby) {
-        Timer existing = lobbyTimers.remove(lobby.getId());
-        if (existing != null) {
-            existing.cancel(); //stops old timer if it exists
+        if (lobby.isGameStarted()) {
+            return; //No need to timeout a lobby that already started a game
+        }
+    
+        if (lobbyTimers.containsKey(lobby.getId())) {
+            log.info("Timer already exists for lobby {} — not rescheduling.", lobby.getId());
+            return; //Timer already running
         }
 
         Timer timer = new Timer(); //create and schedule a new one 
@@ -410,7 +416,7 @@ public class LobbyService {
                     }
                 }
             }
-        }, 10 * 60 * 1000);
+        }, 1 * 40 * 1000);
     }
 
     public void stopLobbyTimer(Long lobbyId) {

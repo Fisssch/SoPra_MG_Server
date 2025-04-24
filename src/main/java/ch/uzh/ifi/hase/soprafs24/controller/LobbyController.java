@@ -75,6 +75,8 @@ public class LobbyController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found");
         }
 
+        lobbyService.scheduleLobbyTimeout(lobby);
+
         return new LobbyResponseDTO(
                 lobby.getId(),
                 lobby.getLobbyName(),
