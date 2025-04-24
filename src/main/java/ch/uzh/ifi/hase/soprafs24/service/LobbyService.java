@@ -410,7 +410,7 @@ public class LobbyService {
                     log.warn("Error in scheduled lobby timeout for lobby {}: {}", lobby.getId(), e.getMessage());
                 } finally {
                     try {
-                        lobbyTimers.remove(lobby.getId());
+                        stopLobbyTimer(lobby.getId());
                     } catch (Exception e) {
                         log.warn("Failed to remove timer for lobby {}: {}", lobby.getId(), e.getMessage());
                     }
@@ -431,6 +431,7 @@ public class LobbyService {
         try {
             lobby = getLobbyById(lobbyId);
         } catch (Exception ex) {
+            stopLobbyTimer(lobbyId);
             return;
         }
 
