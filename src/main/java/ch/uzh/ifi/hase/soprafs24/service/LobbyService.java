@@ -416,7 +416,7 @@ public class LobbyService {
                     }
                 }
             }
-        }, 1 * 40 * 1000);
+        }, 10 * 60 * 1000);
     }
 
     public void stopLobbyTimer(Long lobbyId) {
