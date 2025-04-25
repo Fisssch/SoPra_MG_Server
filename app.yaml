@@ -14,10 +14,11 @@ runtime_config:
 
 network:
   session_affinity: true
-  
+
 env_variables:
-  SPRING_PROFILES_ACTIVE: 'prod'
+  SPRING_PROFILES_ACTIVE: "prod"
   APP_ENV: production
-  
+  API_KEY: $API_KEY
+
 readiness_check:
   app_start_timeout_sec: 1800
