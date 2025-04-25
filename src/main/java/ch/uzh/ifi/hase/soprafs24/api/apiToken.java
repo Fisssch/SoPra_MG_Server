@@ -15,7 +15,13 @@ import org.springframework.web.server.ResponseStatusException;
 public class apiToken {
 
     public static String getApiToken() {
-        //getting from local.properties 
+        // 1. Erst Umgebungsvariable prüfen (z.B. von GitHub Actions)
+        String envKey = System.getenv("API_KEY");
+        if (envKey != null && !envKey.isEmpty()) {
+            return envKey;
+        }
+
+        // 2. Wenn keine Umgebungsvariable, dann local.properties lesen
         try {
             Properties properties = new Properties();
             String path = Paths.get(System.getProperty("user.dir"), "local.properties").toString();
@@ -25,10 +31,10 @@ public class apiToken {
                 return apiKey;
             }
         } catch (IOException ignored) {
-            //missing file 
+            // Datei fehlt, geht weiter
         }
 
-        //getting from secret manager
+        // 3. Wenn nichts gefunden, dann aus Secret Manager holen
         try (SecretManagerServiceClient client = SecretManagerServiceClient.create()) {
             String secretName = "projects/1075428158089/secrets/API_KEY/versions/latest";
             AccessSecretVersionRequest request = AccessSecretVersionRequest.newBuilder()
