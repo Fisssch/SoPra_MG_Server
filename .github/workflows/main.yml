@@ -54,6 +54,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Replace secrets in Googles App Engine Deployment File
+        uses: 73h/gae-app-yaml-replace-env-variables@v0.3
+        env:
+          API_KEY: ${{ secrets.API_KEY }}
+        with:
+          app_yaml_path: "app.yaml"
+
       - name: Deploy to App Engine
         id: deploy
         uses: google-github-actions/deploy-appengine@v0.2.0
