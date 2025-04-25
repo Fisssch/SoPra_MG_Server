@@ -31,15 +31,24 @@ public class GameService {
     private final PlayerRepository playerRepository;
     private final UserRepository userRepository;
     private final LobbyRepository lobbyRepository;
+    private final LobbyService lobbyService;
     private final Map<Long, Object> locks = new ConcurrentHashMap<>();
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
-    public GameService(WordGenerationService wordGenerationService, GameRepository gameRepository, PlayerRepository playerRepository, UserRepository userRepository, LobbyRepository lobbyRepository) {
+    public GameService(
+            WordGenerationService wordGenerationService,
+            GameRepository gameRepository,
+            PlayerRepository playerRepository,
+            UserRepository userRepository,
+            LobbyRepository lobbyRepository,
+            LobbyService lobbyService
+    ) {
         this.wordGenerationService = wordGenerationService;
         this.gameRepository = gameRepository;
         this.playerRepository = playerRepository;
         this.userRepository = userRepository;
         this.lobbyRepository = lobbyRepository;
+        this.lobbyService = lobbyService;
     }
 
     public void checkIfUserSpymaster(User user) {
@@ -79,8 +88,10 @@ public class GameService {
                 }
                 Lobby lobby = lobbyRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
                 String theme = lobby.getTheme(); 
+                
+                GameMode actualMode = lobby.getGameMode();
 
-                if (theme != null && !theme.equalsIgnoreCase("default") && gameMode != GameMode.THEME) {
+                if (theme != null && !theme.equalsIgnoreCase("default") && actualMode != GameMode.THEME) {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Theme provided but game mode is not THEME");
                 }
 
@@ -304,6 +315,23 @@ public class GameService {
         Lobby lobby = lobbyRepository.findById(gameId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
         lobby.setGameStarted(false);
+        lobby.setCreatedAt(java.time.Instant.now()); // optional: Reset countdown
         lobbyRepository.save(lobby);
+
+        Long redTeamId = lobby.getRedTeam().getId();
+        Long blueTeamId = lobby.getBlueTeam().getId();
+
+        List<Player> redPlayers = playerRepository.findByTeamId(redTeamId);
+        List<Player> bluePlayers = playerRepository.findByTeamId(blueTeamId);
+
+        for (Player player : redPlayers) {
+            player.setReady(false);
+            playerRepository.save(player);
+        }
+
+        for (Player player : bluePlayers) {
+            player.setReady(false);
+            playerRepository.save(player);
+        }
     }
-}
+    }

@@ -9,9 +9,11 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Timer;
 import java.util.TimerTask;
-
+import java.util.concurrent.ConcurrentHashMap;
 
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
 import ch.uzh.ifi.hase.soprafs24.constant.PlayerRole;
@@ -33,6 +35,7 @@ public class LobbyService {
     private final PlayerRepository playerRepository;
     private final TeamRepository teamRepository;
     private final WebsocketService websocketService;
+    private final Map<Long, Timer> lobbyTimers = new ConcurrentHashMap<>();
     private final UserRepository userRepository; 
 
     public LobbyService(LobbyRepository lobbyRepository, PlayerRepository playerRepository, TeamRepository teamRepository, WebsocketService websocketService, UserRepository userRepository) {
@@ -42,14 +45,20 @@ public class LobbyService {
         this.websocketService = websocketService;
         this.userRepository = userRepository;
     }
-    
+
     public Lobby getOrCreateLobby(Integer lobbyCode) {
         Lobby lobby = null;
 
         if (lobbyCode != null) {
             lobby = lobbyRepository.findByLobbyCode(lobbyCode)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby with code " + lobbyCode + " not found"));
+
+            if (Boolean.TRUE.equals(lobby.isGameStarted())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Game has already started");
+            }
+            scheduleLobbyTimeout(lobby);
         }
+
 
         if (lobby == null) {
             return createLobby("Lobby " + generateLobbyCode(), GameMode.CLASSIC);
@@ -60,7 +69,7 @@ public class LobbyService {
 
     public Lobby getLobbyById(Long id) {
         return lobbyRepository.findById(id).orElseThrow(
-            () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found with id: " + id));
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found with id: " + id));
     }
 
     public Lobby createLobby(String lobbyName, GameMode gameMode) {
@@ -70,22 +79,20 @@ public class LobbyService {
         lobby.setLobbyCode(generateLobbyCode());
 
         lobby.setCreatedAt(Instant.now());
-        // Save the lobby first to get an ID
         lobby = lobbyRepository.save(lobby);
 
         Team redTeam = new Team();
         redTeam.setColor(TeamColor.RED);
         redTeam.setLobby(lobby);
         teamRepository.save(redTeam);
-        
+
         Team blueTeam = new Team();
         blueTeam.setColor(TeamColor.BLUE);
         blueTeam.setLobby(lobby);
         teamRepository.save(blueTeam);
 
         lobby.setRedTeam(redTeam);
-        lobby.setBlueTeam(blueTeam); 
-
+        lobby.setBlueTeam(blueTeam);
         lobby.setTheme("default");
 
         scheduleLobbyTimeout(lobby);
@@ -96,16 +103,15 @@ public class LobbyService {
     public Lobby setGameMode(Long id, GameMode gameMode) {
         Lobby lobby = getLobbyById(id);
         lobby.setGameMode(gameMode);
-
         if (gameMode != GameMode.THEME){
-            lobby.setTheme(null); 
+            lobby.setTheme(null);
         }
         lobbyRepository.save(lobby);
         return lobby;
     }
 
     public Lobby setTheme(Long id, String theme){
-        Lobby lobby = getLobbyById(id); 
+        Lobby lobby = getLobbyById(id);
         lobby.setTheme(theme.trim());
         return lobbyRepository.save(lobby);
     }
@@ -115,9 +121,8 @@ public class LobbyService {
         Lobby lobby = getLobbyById(lobbyId);
         if (lobby == null) return null;
 
-        // Prüfen, ob Spieler bereits in Lobby
         if (lobby.getPlayers().stream().anyMatch(p -> p.getId().equals(playerId))) {
-            return player; // Spieler ist schon drin, nichts ändern
+            return player;
         }
 
         long redCount = lobby.getPlayers().stream()
@@ -150,8 +155,20 @@ public class LobbyService {
     }
 
     public void removePlayerFromLobby(Long lobbyId, Long playerId) {
-        Player player = playerRepository.findById(playerId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found with id: " + playerId));
-        Lobby lobby = getLobbyById(lobbyId);
+        Optional<Player> optionalPlayer = playerRepository.findById(playerId);
+        if (optionalPlayer.isEmpty()) {
+            log.warn("Tried to remove player " + playerId + " but they don't exist.");
+            return; // Just skip, sicne we already have deleted player 
+        }
+        Player player = optionalPlayer.get();
+        
+        Lobby lobby;
+        try {
+            lobby = getLobbyById(lobbyId);
+        } catch (ResponseStatusException e) {
+            log.warn("Tried to remove player from lobby " + lobbyId + " but the lobby doesn't exist.");
+            return;
+        }
 
         if (player.getRole() == PlayerRole.SPYMASTER) {
             Team team = player.getTeam();
@@ -175,8 +192,9 @@ public class LobbyService {
                 teamRepository.delete(updatedLobby.getBlueTeam());
             }
             lobbyRepository.delete(updatedLobby);
+            lobbyTimers.remove(lobbyId);
         } else {
-            sendLobbyPlayerStatusUpdate(lobbyId); // WebSocket-Update
+            sendLobbyPlayerStatusUpdate(lobbyId);
         }
     }
 
@@ -192,6 +210,7 @@ public class LobbyService {
                 teamRepository.save(team);
             }
         }
+
         Team newTeam;
         if ("red".equalsIgnoreCase(color)) {
             newTeam = lobby.getRedTeam();
@@ -200,15 +219,17 @@ public class LobbyService {
         } else {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid team color: " + color);
         }
+
         lobby.assignPlayerToTeam(player, newTeam);
         // If the player is a spymaster but the other team already has a spymaster set him to field operative, otherwise assign him to spymaster of new team
+
         if (player.getRole() == PlayerRole.SPYMASTER) {
             if (newTeam.getSpymaster() == null) {
                 newTeam.setSpymaster(player);
                 teamRepository.save(newTeam);
-            }
-            else
+            } else {
                 player.setRole(PlayerRole.FIELD_OPERATIVE);
+            }
         }
 
         playerRepository.save(player);
@@ -232,11 +253,11 @@ public class LobbyService {
                     team.setSpymaster(player);
                     teamRepository.save(team);
                 }
-            } 
+            }
             if (oldRole == PlayerRole.SPYMASTER) {
                 // If the player was a spymaster, set the spymaster of the team to null
                 Team team = player.getTeam();
-                if (team != null && team.getSpymaster() != null && team.getSpymaster().getId().equals(player.getId())) { //important to work with id here otherwise the if statement fails 
+                if (team != null && team.getSpymaster() != null && team.getSpymaster().getId().equals(player.getId())) {
                     team.setSpymaster(null);
                     teamRepository.save(team);
                 }
@@ -255,7 +276,6 @@ public class LobbyService {
         if (lobby == null) return null;
 
         Player player = playerRepository.findById(playerId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found with id: " + playerId));
-
         return player.getReady();
     }
 
@@ -270,8 +290,9 @@ public class LobbyService {
 
         if (shouldStartGame(lobby)) {
             lobby.setGameStarted(true);
-            lobbyRepository.save(lobby); 
+            lobbyRepository.save(lobby);
             websocketService.sendMessage("/topic/lobby/" + lobbyId + "/start", true);
+            stopLobbyTimer(lobbyId);
         }
         return player;
     }
@@ -280,11 +301,11 @@ public class LobbyService {
         Lobby lobby = lobbyRepository.findById(lobbyId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
 
         if (lobby.getGameMode() != GameMode.OWN_WORDS){
-            throw new ResponseStatusException((HttpStatus.BAD_REQUEST), "Can't add custom words unless game mode = OWN_WORDS"); 
+            throw new ResponseStatusException((HttpStatus.BAD_REQUEST), "Can't add custom words unless game mode = OWN_WORDS");
         }
 
         if (word == null || word.trim().isEmpty() || word.contains(" ")){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid word"); 
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid word");
         }
 
         if (lobby.getCustomWords().size() >= 25){
@@ -365,44 +386,91 @@ public class LobbyService {
 
 
     public void scheduleLobbyTimeout(Lobby lobby) {
-        Timer timer = new Timer();
+        if (lobby.isGameStarted()) {
+            return; //No need to timeout a lobby that already started a game
+        }
+    
+        if (lobbyTimers.containsKey(lobby.getId())) {
+            log.info("Timer already exists for lobby {} — not rescheduling.", lobby.getId());
+            return; //Timer already running
+        }
+
+        Timer timer = new Timer(); //create and schedule a new one 
+        lobbyTimers.put(lobby.getId(), timer);
+
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                Lobby currentLobby = getLobbyById(lobby.getId());
-                if (!currentLobby.isGameStarted()) {
-                    closeLobby(currentLobby.getId());
+                try {
+                    Lobby currentLobby = getLobbyById(lobby.getId());
+                    if (!currentLobby.isGameStarted()) {
+                        closeLobby(currentLobby.getId());
+                    }
+                } catch (Exception e) {
+                    log.warn("Error in scheduled lobby timeout for lobby {}: {}", lobby.getId(), e.getMessage());
+                } finally {
+                    try {
+                        stopLobbyTimer(lobby.getId());
+                    } catch (Exception e) {
+                        log.warn("Failed to remove timer for lobby {}: {}", lobby.getId(), e.getMessage());
+                    }
                 }
             }
-        }, 10*60 * 1000); // 10 Minuten in Millisekunden
+        }, 10 * 60 * 1000);
     }
-    
+
+    public void stopLobbyTimer(Long lobbyId) {
+        Timer existing = lobbyTimers.remove(lobbyId);
+        if (existing != null) {
+            existing.cancel();
+        }
+    }
+
     public void closeLobby(Long lobbyId) {
         Lobby lobby;
         try {
             lobby = getLobbyById(lobbyId);
+        } catch (Exception ex) {
+            stopLobbyTimer(lobbyId);
+            return;
         }
-        catch (Exception ex)
-        { return; } // Lobby already closed
 
-        // Notify all players via WebSocket
         websocketService.sendMessage("/topic/lobby/" + lobbyId + "/close", "CLOSED");
 
-        // Remove all players
-        for (Player player : lobby.getPlayers()) {
-            playerRepository.delete(player);
+        // Remove all players (if still exist)
+        if (lobby.getPlayers() != null) {
+            for (Player player : lobby.getPlayers()) {
+                if (player != null && playerRepository.existsById(player.getId())) {
+                    try {
+                        playerRepository.deleteById(player.getId());
+                    } catch (Exception e) {
+                        log.warn("Player already deleted or error during deletion: " + player.getId(), e);
+                    }
+                }
+            }
         }
 
-        // Delete teams
-        if (lobby.getRedTeam() != null) {
-            teamRepository.delete(lobby.getRedTeam());
-        }
-        if (lobby.getBlueTeam() != null) {
-            teamRepository.delete(lobby.getBlueTeam());
+        // Delete teams (if exist)
+        try {
+            if (lobby.getRedTeam() != null && teamRepository.existsById(lobby.getRedTeam().getId())) {
+                teamRepository.deleteById(lobby.getRedTeam().getId());
+            }
+            if (lobby.getBlueTeam() != null && teamRepository.existsById(lobby.getBlueTeam().getId())) {
+                teamRepository.deleteById(lobby.getBlueTeam().getId());
+            }
+            } catch (Exception e) {
+            log.warn("Error while deleting teams for lobby " + lobbyId, e);
         }
 
-        // Delete the lobby itself
-        lobbyRepository.delete(lobby);
+        // Delete the lobby (if still exists)
+        try {
+            if (lobbyRepository.existsById(lobbyId)) {
+                lobbyRepository.deleteById(lobbyId);
+                stopLobbyTimer(lobbyId); 
+            }
+            } catch (Exception e) {
+            log.warn("Error deleting lobby " + lobbyId, e);
+        }
 
         log.info("Lobby " + lobbyId + " has been closed due to inactivity.");
     }

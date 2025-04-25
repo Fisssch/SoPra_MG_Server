@@ -80,6 +80,7 @@ public class GameController {
         var team = result.getValue();
         if (Boolean.TRUE.equals(isGameCompleted)) {
             webSocketService.sendMessage("/topic/game/" + id + "/gameCompleted", team.name());
+            //webSocketService.sendMessage("/topic/lobby/" + id + "/end", true); commenting out, sicne no need for it right now 
             gameService.updatePlayerStats(id, team);
         } else {
             guessDTO.setTeamColor(team.name());
