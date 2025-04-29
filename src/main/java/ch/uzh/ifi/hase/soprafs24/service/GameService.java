@@ -17,9 +17,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import ch.uzh.ifi.hase.soprafs24.constant.*;
-import ch.uzh.ifi.hase.soprafs24.entity.*;
-import ch.uzh.ifi.hase.soprafs24.repository.*;
+import ch.uzh.ifi.hase.soprafs24.constant.CardColor;
+import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
+import ch.uzh.ifi.hase.soprafs24.constant.PlayerRole;
+import ch.uzh.ifi.hase.soprafs24.constant.TeamColor;
+import ch.uzh.ifi.hase.soprafs24.entity.Card;
+import ch.uzh.ifi.hase.soprafs24.entity.Game;
+import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
+import ch.uzh.ifi.hase.soprafs24.entity.Player;
+import ch.uzh.ifi.hase.soprafs24.entity.User;
+import ch.uzh.ifi.hase.soprafs24.repository.GameRepository;
+import ch.uzh.ifi.hase.soprafs24.repository.LobbyRepository;
+import ch.uzh.ifi.hase.soprafs24.repository.PlayerRepository;
+import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 
 @Service
 @Transactional
@@ -67,6 +77,7 @@ public class GameService {
         }
         Game game = gameRepository.findById(gameId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
         game.setCurrentHint(hint, wordCount);
+        game.setGuessedInHint(0); //reset guessed words for the new hint
         gameRepository.save(game);        
     }
 
@@ -333,5 +344,15 @@ public class GameService {
             player.setReady(false);
             playerRepository.save(player);
         }
+    }
+    public int getRemainingGuesses(Long gameId) {
+        Game game = gameRepository.findById(gameId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+
+        if (game.getCurrentHint() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No hint has been given yet");
+        }
+
+        return game.getCurrentHint().getValue() - game.getGuessedInHint();
     }
     }
