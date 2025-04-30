@@ -2,6 +2,7 @@ package ch.uzh.ifi.hase.soprafs24.service;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -30,6 +31,7 @@ import ch.uzh.ifi.hase.soprafs24.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.LobbyRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.PlayerRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.SelectWordDTO;
 
 @Service
 @Transactional
@@ -380,4 +382,40 @@ public class GameService {
         return gameRepository.findById(gameId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
     }
+
+    public void selectWord(Long gameId, SelectWordDTO selectWordDTO) {
+        // get game
+        Game game = gameRepository.findById(gameId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+    
+        // get card 
+        Card selectedCard = findCardByWord(game.getBoard(), selectWordDTO.getWordStr());
+        
+        // update selection state of card 
+        selectedCard.setSelected(selectWordDTO.isSelected()); 
+    
+        // save updated game 
+        gameRepository.save(game);
     }
+
+    private Card findCardByWord(List<Card> board, String word) {
+        return board.stream()
+            .filter(card -> card.getWord().equalsIgnoreCase(word))
+            .findFirst()
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Word not found on the board"));
+    }
+
+    public void checkIfUserIsFieldOperative(Long userId, TeamColor teamColor) {
+        Player player = playerRepository.findById(userId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found"));
+    
+        if (player.getRole() != PlayerRole.FIELD_OPERATIVE) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only field operatives can select words temporarily");
+        }
+    
+        if (player.getTeam().getColor() != teamColor) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only select words for your own team");
+        }
+    }
+
+}
