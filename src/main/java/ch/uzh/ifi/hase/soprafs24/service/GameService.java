@@ -177,12 +177,24 @@ public class GameService {
         // Neutral card guess
         else if (word.getColor() == CardColor.NEUTRAL) {
             word.setGuessed(true);
+
+            // Clear temp word selection 
+            for (Card card : game.getBoard()) {
+                card.setSelected(false);
+            }
+
             game.setTeamTurn(opponentTeam);
             result = Map.entry(false, opponentTeam);
         } 
         // Enemy card guess
         else if (word.getColor().name() != teamColor.name()) {
             word.setGuessed(true);
+
+            // Clear temp word selection 
+            for (Card card : game.getBoard()) {
+                card.setSelected(false);
+            }
+
             game.setTeamTurn(opponentTeam);
             Long leftToGuess = game.getBoard().stream()
                 .filter(card -> card.getColor() == word.getColor() && !card.isGuessed())
@@ -211,6 +223,12 @@ public class GameService {
               scheduleGameDeletion(game.getId()); //delete game 
           } else {
               if (game.getGuessedInHint() >= game.getCurrentHint().getValue()) {
+
+                // Clear temp word selection 
+                for (Card card : game.getBoard()) {
+                    card.setSelected(false);
+                }
+
                   game.setTeamTurn(opponentTeam);
                   result = Map.entry(false,  opponentTeam);
               }
@@ -375,9 +393,15 @@ public class GameService {
         if (game.getCurrentHint() != null) {
             game.setGuessedInHint(0); // Reset guessed words
         }
+
+        // Clear temp selection 
+        for (Card card : game.getBoard()) {
+            card.setSelected(false);
+        }
     
         gameRepository.save(game);
     }
+
     public Game getGameById(Long gameId) {
         return gameRepository.findById(gameId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
