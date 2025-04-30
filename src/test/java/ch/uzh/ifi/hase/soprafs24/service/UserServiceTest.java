@@ -72,10 +72,8 @@ public class UserServiceTest {
 
     @Test
     public void createUser_duplicateUsername_throwsException() {
-        // given -> a first user has already been created
-        userService.createUser(testUser);
 
-        // when -> setup additional mocks for UserRepository
+        // given -> setup additional mocks for UserRepository
         Mockito.when(userRepository.findByUsername(Mockito.any())).thenReturn(testUser);
 
         // then -> attempt to create second user with same user -> check that an error
@@ -389,5 +387,22 @@ public class UserServiceTest {
             assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
             assertEquals("Old password is incorrect.", exception.getReason());
         }
+    }
+
+    @Test
+    public void extractAndValidateToken_invalidToken_throwsException() {
+        when(userRepository.findByToken("invalid")).thenReturn(null);
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () ->
+            userService.extractAndValidateToken("Bearer invalid")
+        );
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
+        assertEquals("An invalid token was provided", exception.getReason());
+    }
+
+    @Test
+        public void extractToken_withOnlyBearer_returnsEmptyString() {
+        String result = userService.extractToken("Bearer ");
+        assertEquals("", result);
     }
 }
