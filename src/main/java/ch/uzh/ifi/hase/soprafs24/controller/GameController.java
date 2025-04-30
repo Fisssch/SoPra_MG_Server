@@ -62,7 +62,20 @@ public class GameController {
     //    List<String> words= gameService.generateWords(id, "default"); //call here with default since we never create new words here, just get current words from game 
     //    return words;
     //} 
-
+    @PutMapping("/game/{id}/endTurn")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void endTurn(@PathVariable Long id, @RequestHeader("Authorization") String authHeader) {
+        String token = userService.extractToken(authHeader);
+        gameService.endTurn(id, userService.validateToken(token));
+    
+        // Notify all clients about the updated turn
+        Game game = gameService.getGameById(id);
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("teamTurn", game.getTeamTurn().name()); // Only include the updated team turn
+    
+        // Send the payload to a dedicated WebSocket topic
+        webSocketService.sendMessage("/topic/game/" + id + "/turn", payload);
+    }
     @PostMapping("/game/{id}/start")
     @ResponseStatus(HttpStatus.OK)
     @AuthorizationRequired

@@ -355,4 +355,29 @@ public class GameService {
 
         return game.getCurrentHint().getValue() - game.getGuessedInHint();
     }
+    public void endTurn(Long gameId, User user) {
+        Game game = gameRepository.findById(gameId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+    
+        // Ensure the user is part of the game
+        Player player = playerRepository.findById(user.getId())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found"));
+        
+    
+        // Switch the turn to the opposing team
+        TeamColor currentTeam = game.getTeamTurn();
+        TeamColor nextTeam = (currentTeam == TeamColor.RED) ? TeamColor.BLUE : TeamColor.RED;
+        game.setTeamTurn(nextTeam);
+    
+        // Reset guesses left to the number of words in the current hint
+        if (game.getCurrentHint() != null) {
+            game.setGuessedInHint(0); // Reset guessed words
+        }
+    
+        gameRepository.save(game);
+    }
+    public Game getGameById(Long gameId) {
+        return gameRepository.findById(gameId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+    }
     }
