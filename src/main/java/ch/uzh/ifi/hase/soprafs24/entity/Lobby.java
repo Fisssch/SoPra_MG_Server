@@ -34,6 +34,8 @@ public class Lobby extends DatabaseEntity {
     
     private boolean gameStarted = false;
 
+    private boolean openForLostPlayers = false;
+
     private List<String> customWords = new ArrayList<>();
 
     private Instant createdAt;
@@ -210,5 +212,13 @@ public class Lobby extends DatabaseEntity {
 
     public void setGameStarted(boolean gameStarted) {
         this.gameStarted = gameStarted;
+    }
+
+    public boolean isOpenForLostPlayers() {
+        return openForLostPlayers;
+    }
+
+    public void setOpenForLostPlayers(boolean openForLostPlayers) {
+        this.openForLostPlayers = openForLostPlayers;
     }
 }

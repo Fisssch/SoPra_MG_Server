@@ -31,16 +31,18 @@ public class LobbyController {
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
     @AuthorizationRequired
-    public LobbyResponseDTO getOrCreateLobby(@RequestParam(required = false) Integer code) {
+    public LobbyResponseDTO getOrCreateLobby(@RequestParam(required = false) Integer code,
+                                             @RequestParam(defaultValue = "false") boolean autoCreate) {
         Lobby lobby;
-        lobby = lobbyService.getOrCreateLobby(code);
+        lobby = lobbyService.getOrCreateLobby(code, autoCreate);
 
         return new LobbyResponseDTO(
                 lobby.getId(),
                 lobby.getLobbyName(),
                 lobby.getGameMode().name(),
                 lobby.getLobbyCode(),
-                lobby.getCreatedAt()
+                lobby.getCreatedAt(),
+                lobby.isOpenForLostPlayers()
         );
     }
 
@@ -55,14 +57,15 @@ public class LobbyController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid or missing game mode");
         }
 
-        Lobby lobby = lobbyService.createLobby(lobbyPostDTO.getLobbyName(), mode);
+        Lobby lobby = lobbyService.createLobby(lobbyPostDTO.getLobbyName(), mode, lobbyPostDTO.isOpenForLostPlayers());
 
         return new LobbyResponseDTO(
                 lobby.getId(),
                 lobby.getLobbyName(),
                 lobby.getGameMode().name(),
                 lobby.getLobbyCode(),
-                lobby.getCreatedAt()
+                lobby.getCreatedAt(),
+                lobby.isOpenForLostPlayers()
         );
     }
 
@@ -82,7 +85,8 @@ public class LobbyController {
                 lobby.getLobbyName(),
                 lobby.getGameMode().name(),
                 lobby.getLobbyCode(),
-                lobby.getCreatedAt()
+                lobby.getCreatedAt(),
+                lobby.isOpenForLostPlayers()
         );
     }
 
@@ -275,5 +279,21 @@ public class LobbyController {
         Lobby lobby = lobbyService.getLobbyById(id);
         return lobby.getCustomWords();
     }
+    @GetMapping("/lost")
+    @ResponseStatus(HttpStatus.OK)
+    @AuthorizationRequired
+    public LobbyResponseDTO getJoinableLobby() {
+        List<Lobby> joinable = lobbyService.getAllJoinableLobbies();
+        Lobby chosen = joinable.stream().findAny()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No joinable lobby found"));
 
+        return new LobbyResponseDTO(
+                chosen.getId(),
+                chosen.getLobbyName(),
+                chosen.getGameMode().name(),
+                chosen.getLobbyCode(),
+                chosen.getCreatedAt(),
+                chosen.isOpenForLostPlayers()
+        );
+    }
 }

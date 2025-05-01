@@ -11,12 +11,14 @@ public class LobbyResponseDTO {
 
     private Instant createdAt;
 
-    public LobbyResponseDTO(Long id, String lobbyName, String gameMode, Integer lobbyCode, Instant createdAt) {
+    private boolean openForLostPlayers;
+    public LobbyResponseDTO(Long id, String lobbyName, String gameMode, Integer lobbyCode, Instant createdAt, boolean openForLostPlayers) {
         this.id = id;
         this.lobbyName = lobbyName;
         this.gameMode = gameMode;
         this.lobbyCode = lobbyCode;
         this.createdAt = createdAt;
+        this.openForLostPlayers = openForLostPlayers;
     }
 
     public Long getId() {
@@ -54,5 +56,13 @@ public class LobbyResponseDTO {
     }
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public boolean isOpenForLostPlayers() {
+        return openForLostPlayers;
+    }
+
+    public void setOpenForLostPlayers(boolean openForLostPlayers) {
+        this.openForLostPlayers = openForLostPlayers;
     }
 }
