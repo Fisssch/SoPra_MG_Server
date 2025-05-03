@@ -76,6 +76,17 @@ public class GameService {
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Word count must be at least 1");
         }
         Game game = gameRepository.findById(gameId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+        
+        // Check if the hint matches any word on the board
+        List<Card> board = game.getBoard();
+        for (Card card : board) {
+            if (card.getWord().equalsIgnoreCase(hint)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Hint cannot be the same as a word on the board");
+            }
+        }
+        
+        
+        
         game.setCurrentHint(hint, wordCount);
         game.setGuessedInHint(0); //reset guessed words for the new hint
         gameRepository.save(game);        
