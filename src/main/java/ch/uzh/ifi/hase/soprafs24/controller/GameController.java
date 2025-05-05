@@ -64,6 +64,7 @@ public class GameController {
     //    List<String> words= gameService.generateWords(id, "default"); //call here with default since we never create new words here, just get current words from game 
     //    return words;
     //} 
+    
     @PutMapping("/game/{id}/endTurn")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void endTurn(@PathVariable Long id, @RequestHeader("Authorization") String authHeader) {
@@ -143,8 +144,11 @@ public class GameController {
 
         // Send the updated board to all players via WebSocket
         List<Card> updatedBoard = gameService.getBoard(id);
+        int guessesLeft = gameService.getRemainingGuesses(id);
+
         Map<String, Object> payload = new HashMap<>();
         payload.put("updatedBoard", updatedBoard); // Send the updated board
+        payload.put("guessesLeft", guessesLeft); 
         
         // Send the selection to the WebSocket topic
         webSocketService.sendMessage("/topic/game/" + id + "/board", payload); 

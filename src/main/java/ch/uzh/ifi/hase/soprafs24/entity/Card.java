@@ -6,7 +6,6 @@ public class Card {
     private String word;
     private CardColor color;
     private boolean guessed = false; 
-    private boolean selectedByRedTeam = false; 
     private boolean selected = false;
 
     public Card() {}
