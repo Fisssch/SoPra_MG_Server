@@ -119,6 +119,14 @@ public class LobbyController {
         return themeDTO;
     }
 
+    @PutMapping("/{id}/language")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @AuthorizationRequired
+    public void setLobbyLanguage(@PathVariable Long id, @RequestBody String languageStr) {
+        var language = lobbyService.setLanguage(id, languageStr);
+        webSocketService.sendMessage("/topic/lobby/" + id + "/language", language);
+    }
+
     @PutMapping("/{id}/{playerId}")
     @ResponseStatus(HttpStatus.OK)
     @AuthorizationRequired

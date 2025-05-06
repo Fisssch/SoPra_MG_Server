@@ -15,6 +15,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 
+import ch.uzh.ifi.hase.soprafs24.constant.GameLanguage;
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
 import ch.uzh.ifi.hase.soprafs24.constant.PlayerRole;
 import ch.uzh.ifi.hase.soprafs24.constant.TeamColor;
@@ -114,6 +115,17 @@ public class LobbyService {
         Lobby lobby = getLobbyById(id);
         lobby.setTheme(theme.trim());
         return lobbyRepository.save(lobby);
+    }
+
+    public GameLanguage setLanguage(Long id, String languageStr) {
+        Lobby lobby = getLobbyById(id);
+        var language = GameLanguage.valueOf(languageStr.toUpperCase());
+        if (language == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid language: " + languageStr);
+        }
+        lobby.setLanguage(language);
+        lobbyRepository.save(lobby);
+        return language;
     }
 
     public Player addPlayerToLobby(Long lobbyId, Long playerId) {

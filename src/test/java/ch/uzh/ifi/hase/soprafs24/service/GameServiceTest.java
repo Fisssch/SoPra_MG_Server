@@ -1,6 +1,7 @@
 package ch.uzh.ifi.hase.soprafs24.service;
 
 import ch.uzh.ifi.hase.soprafs24.constant.CardColor;
+import ch.uzh.ifi.hase.soprafs24.constant.GameLanguage;
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
 import ch.uzh.ifi.hase.soprafs24.constant.PlayerRole;
 import ch.uzh.ifi.hase.soprafs24.constant.TeamColor;
@@ -95,7 +96,7 @@ public class GameServiceTest {
             return g;
         });
 
-        when(wordGenerationService.getWordsFromApi()).thenReturn(Arrays.asList(
+        when(wordGenerationService.getWordsFromApi(GameLanguage.GERMAN)).thenReturn(Arrays.asList(
             "apple", "banana", "cherry", "dog", "cat", "tree", "house", "river",
             "car", "mountain", "bird", "school", "computer", "book", "phone",
             "chair", "sun", "moon", "star", "water", "pen", "desk", "cloud",
@@ -130,13 +131,13 @@ public class GameServiceTest {
         lobby.setCustomWords(Arrays.asList("custom1", "custom2"));
         lobby.setGameMode(GameMode.OWN_WORDS);
 
-        when(wordGenerationService.getWordsFromApi()).thenReturn(Arrays.asList(
+        when(wordGenerationService.getWordsFromApi(GameLanguage.GERMAN)).thenReturn(Arrays.asList(
             "word1", "word2", "word3", "word4", "word5", "word6", "word7", "word8",
             "word9", "word10", "word11", "word12", "word13", "word14", "word15", "word16",
             "word17", "word18", "word19", "word20", "word21", "word22", "word23", "word24", "word25"
         ));
 
-        List<String> result = gameService.generateWords(game, "default");
+        List<String> result = gameService.generateWords(game, "default", GameLanguage.GERMAN);
 
         assertNotNull(result);
         assertEquals(25, result.size());

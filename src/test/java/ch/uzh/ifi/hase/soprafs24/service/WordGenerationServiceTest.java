@@ -4,6 +4,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockitoAnnotations;
 
+import ch.uzh.ifi.hase.soprafs24.constant.GameLanguage;
+
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -21,7 +23,7 @@ public class WordGenerationServiceTest {
 
     @Test
     public void getWordsFromApi_withoutTheme_returnsWordsOrEmpty() {
-        List<String> words = wordGenerationService.getWordsFromApi();
+        List<String> words = wordGenerationService.getWordsFromApi(GameLanguage.GERMAN);
 
         assertNotNull(words);
         assertTrue(words.size() == 0 || words.size() == 25); // either fallback empty list or 25 words
@@ -29,7 +31,7 @@ public class WordGenerationServiceTest {
 
     @Test
     public void getWordsFromApi_withTheme_returnsWordsOrEmpty() {
-        List<String> words = wordGenerationService.getWordsFromApi("Informatik");
+        List<String> words = wordGenerationService.getWordsFromApi("Informatik", GameLanguage.GERMAN);
 
         assertNotNull(words);
         assertTrue(words.size() == 0 || words.size() == 25); // fallback or success
