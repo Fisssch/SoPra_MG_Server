@@ -279,6 +279,7 @@ public class LobbyController {
         Lobby lobby = lobbyService.getLobbyById(id);
         return lobby.getCustomWords();
     }
+
     @GetMapping("/lost")
     @ResponseStatus(HttpStatus.OK)
     @AuthorizationRequired
@@ -295,5 +296,15 @@ public class LobbyController {
                 chosen.getCreatedAt(),
                 chosen.isOpenForLostPlayers()
         );
+    }
+
+    @PutMapping("/{id}/lost-players")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @AuthorizationRequired
+    public void updateLostPlayerAccess(@PathVariable Long id, @RequestBody LostPlayerAccessDTO accessDTO) {
+        if (accessDTO == null || accessDTO.getOpenForLostPlayers() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing openForLostPlayers field");
+        }
+        lobbyService.setOpenForLostPlayers(id, accessDTO.getOpenForLostPlayers());
     }
 }

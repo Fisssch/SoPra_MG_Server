@@ -479,4 +479,13 @@ public class LobbyService {
                 .filter(l -> !l.isGameStarted() && l.isOpenForLostPlayers())
                 .toList();
     }
+
+    public void setOpenForLostPlayers(Long lobbyId, boolean open) {
+        Lobby lobby = getLobbyById(lobbyId);
+        if (lobby == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found");
+        }
+        lobby.setOpenForLostPlayers(open);
+        lobbyRepository.save(lobby);
+    }
 }
