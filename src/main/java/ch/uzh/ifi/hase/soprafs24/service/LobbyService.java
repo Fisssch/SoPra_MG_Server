@@ -117,15 +117,10 @@ public class LobbyService {
         return lobbyRepository.save(lobby);
     }
 
-    public GameLanguage setLanguage(Long id, String languageStr) {
+    public Lobby setLanguage(Long id, GameLanguage language) {
         Lobby lobby = getLobbyById(id);
-        var language = GameLanguage.valueOf(languageStr.toUpperCase());
-        if (language == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid language: " + languageStr);
-        }
         lobby.setLanguage(language);
-        lobbyRepository.save(lobby);
-        return language;
+        return lobbyRepository.save(lobby);
     }
 
     public Player addPlayerToLobby(Long lobbyId, Long playerId) {
