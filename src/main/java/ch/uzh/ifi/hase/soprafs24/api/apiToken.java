@@ -10,6 +10,8 @@ import org.springframework.web.server.ResponseStatusException;
 import java.nio.file.Paths;
 
 public class apiToken {
+    public static boolean isTestEnvironment = false; // Set this to true for testing purposes
+
     public static String getApiToken() {        
         String apiKey = null;
         try {
@@ -27,8 +29,9 @@ public class apiToken {
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.PRECONDITION_FAILED, "Failed to load api key");
         }
-        if (apiKey != null && !apiKey.isEmpty())
+        if ((apiKey != null && !apiKey.isEmpty()) || apiToken.isTestEnvironment) {
             return apiKey;
+        }
         throw new ResponseStatusException(HttpStatus.PRECONDITION_FAILED, "API_KEY not found in environment variables or local.properties file");
     }
 }
