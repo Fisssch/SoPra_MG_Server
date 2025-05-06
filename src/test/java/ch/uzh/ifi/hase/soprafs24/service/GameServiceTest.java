@@ -26,6 +26,7 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -225,6 +226,8 @@ public class GameServiceTest {
         public void validateHint_validHint_savesHint() {
             Game game = new Game();
             game.setId(1L);
+            game.setBoard(new ArrayList<>());
+            game.setWords(new ArrayList<>());
             
             when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
             
