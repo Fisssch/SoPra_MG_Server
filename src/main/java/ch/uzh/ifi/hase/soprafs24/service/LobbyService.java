@@ -475,9 +475,7 @@ public class LobbyService {
         log.info("Lobby " + lobbyId + " has been closed due to inactivity.");
     }
     public List<Lobby> getAllJoinableLobbies() {
-        return lobbyRepository.findAll().stream()
-                .filter(l -> !l.isGameStarted() && l.isOpenForLostPlayers())
-                .toList();
+        return lobbyRepository.findOpenLobbiesForLostPlayers();
     }
 
     public void setOpenForLostPlayers(Long lobbyId, boolean open) {
