@@ -1,12 +1,16 @@
 package ch.uzh.ifi.hase.soprafs24.controller;
 
 import ch.uzh.ifi.hase.soprafs24.annotation.AuthorizationRequired;
+import ch.uzh.ifi.hase.soprafs24.constant.GameLanguage;
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
+import ch.uzh.ifi.hase.soprafs24.constant.TeamColor;
 import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs24.entity.Player;
+import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.*;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs24.service.LobbyService;
+import ch.uzh.ifi.hase.soprafs24.service.UserService;
 import ch.uzh.ifi.hase.soprafs24.service.WebsocketService;
 import ch.uzh.ifi.hase.soprafs24.websocket.dto.*;
 
@@ -16,16 +20,19 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+
 @RestController
 @RequestMapping("/lobby")
 public class LobbyController {
 
     private final LobbyService lobbyService;
     private final WebsocketService webSocketService;
+    private final UserService userService;
 
-    LobbyController(LobbyService lobbyService, WebsocketService webSocketService) {
+    LobbyController(LobbyService lobbyService, WebsocketService webSocketService, UserService userService) {
         this.lobbyService = lobbyService;
         this.webSocketService = webSocketService;
+        this.userService = userService;
     }
 
     @GetMapping
@@ -41,6 +48,8 @@ public class LobbyController {
                 lobby.getLobbyName(),
                 lobby.getGameMode().name(),
                 lobby.getLobbyCode(),
+                lobby.getCreatedAt(),
+                lobby.getLanguage().name(),
                 lobby.getCreatedAt(),
                 lobby.isOpenForLostPlayers()
         );
@@ -65,6 +74,7 @@ public class LobbyController {
                 lobby.getGameMode().name(),
                 lobby.getLobbyCode(),
                 lobby.getCreatedAt(),
+                lobby.getLanguage().name(),
                 lobby.isOpenForLostPlayers()
         );
     }
@@ -85,6 +95,8 @@ public class LobbyController {
                 lobby.getLobbyName(),
                 lobby.getGameMode().name(),
                 lobby.getLobbyCode(),
+                lobby.getCreatedAt(),
+                lobby.getLanguage().name()
                 lobby.getCreatedAt(),
                 lobby.isOpenForLostPlayers()
         );
@@ -115,6 +127,14 @@ public class LobbyController {
         ThemeDTO themeDTO = new ThemeDTO();
         themeDTO.setTheme(lobby.getTheme() != null ? lobby.getTheme() : "default");
         return themeDTO;
+    }
+
+    @PutMapping("/{id}/language")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @AuthorizationRequired
+    public void setLobbyLanguage(@PathVariable Long id, @RequestBody GameLanguage language) {
+        lobbyService.setLanguage(id, language);
+        webSocketService.sendMessage("/topic/lobby/" + id + "/language", language);
     }
 
     @PutMapping("/{id}/{playerId}")
@@ -278,6 +298,26 @@ public class LobbyController {
     public List<String> getCustomWords(@PathVariable Long id) {
         Lobby lobby = lobbyService.getLobbyById(id);
         return lobby.getCustomWords();
+    }
+
+    @PostMapping("/{id}/chat")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @AuthorizationRequired
+    public void postMethodName(@PathVariable Long id, @RequestHeader("Authorization") String authHeader, @RequestParam String chatType, @RequestBody String message) {
+        User user = userService.validateToken(userService.extractToken(authHeader));
+        TeamColor color = lobbyService.getTeamColorByPlayer(user.getId());
+        if (color == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found in lobby or not assigned to a team");
+        }
+
+        ChatMessageDTO chatMessageDTO = new ChatMessageDTO(user.getUsername(), message);
+        if (chatType.equalsIgnoreCase("team")) {
+            webSocketService.sendMessage("/topic/lobby/" + id + "/chat/team/" + color.name(), chatMessageDTO);
+        } else if (chatType.equalsIgnoreCase("global")) {
+            webSocketService.sendMessage("/topic/lobby/" + id + "/chat/global", chatMessageDTO);
+        } else {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid chat type");
+        }
     }
 
     @GetMapping("/lost")

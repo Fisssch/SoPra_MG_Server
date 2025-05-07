@@ -11,16 +11,13 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import com.google.gson.*;
 
 import ch.uzh.ifi.hase.soprafs24.api.apiToken;
+import ch.uzh.ifi.hase.soprafs24.constant.GameLanguage;
 
 
 @Service
@@ -28,28 +25,15 @@ import ch.uzh.ifi.hase.soprafs24.api.apiToken;
 public class WordGenerationService {
   private final Logger log = LoggerFactory.getLogger(WordGenerationService.class);
   
-  private static String API_KEY;
-  private static String ENDPOINT;
+  private static String API_KEY = apiToken.getApiToken();
+  private static String ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + API_KEY;
   
-  @Value("${api.key}")
-  public void setApiKey(String apiKey) {
-    if (apiKey == null || apiKey.isEmpty()) {
-      apiKey = apiToken.getLocalApiToken();
-      if (apiKey == null) {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "API key not found");
-      }
-    }
-    WordGenerationService.API_KEY = apiKey;
-    WordGenerationService.ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey;
-    getWordsFromApi("test");
-  }
-
   //fallback method to version without theme 
-  public List<String> getWordsFromApi(){
-    return getWordsFromApi(null); 
+  public List<String> getWordsFromApi(GameLanguage language){
+    return getWordsFromApi(null, language); 
   }
 
-  public List<String> getWordsFromApi(String theme) {
+  public List<String> getWordsFromApi(String theme, GameLanguage language) {
     int maxRetries = 5;
     for (int attempt = 0; attempt < maxRetries; attempt++){
       try {
@@ -57,10 +41,10 @@ public class WordGenerationService {
         String prompt;
 
         if (theme != null && !theme.isBlank()) {
-          prompt = "Give me a list of 25 random, common German nouns suitable for the board game Codenames. " +
+          prompt = "Give me a list of 25 random, common " + language + " nouns suitable for the board game Codenames. " +
                    "The words should all clearly relate to the theme: '" + theme + "'. Output them in a JSON array.";
-      } else {
-          prompt = "Give me a list of 25 random, common German nouns suitable for the board game Codenames. " +
+        } else {
+          prompt = "Give me a list of 25 random, common " + language + " nouns suitable for the board game Codenames. " +
                    "Output them in a JSON array.";
       }
 
@@ -127,5 +111,10 @@ public class WordGenerationService {
     }
     log.error("Exceed maximum retries"); 
     return List.of();
+  }
+
+  public void setApiKey(String apiKey) {
+    API_KEY = apiKey; 
+    ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey;
   }
 }

@@ -15,6 +15,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 
+import ch.uzh.ifi.hase.soprafs24.constant.GameLanguage;
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
 import ch.uzh.ifi.hase.soprafs24.constant.PlayerRole;
 import ch.uzh.ifi.hase.soprafs24.constant.TeamColor;
@@ -113,6 +114,12 @@ public class LobbyService {
     public Lobby setTheme(Long id, String theme){
         Lobby lobby = getLobbyById(id);
         lobby.setTheme(theme.trim());
+        return lobbyRepository.save(lobby);
+    }
+
+    public Lobby setLanguage(Long id, GameLanguage language) {
+        Lobby lobby = getLobbyById(id);
+        lobby.setLanguage(language);
         return lobbyRepository.save(lobby);
     }
 
@@ -473,6 +480,11 @@ public class LobbyService {
         }
 
         log.info("Lobby " + lobbyId + " has been closed due to inactivity.");
+    }
+
+    public TeamColor getTeamColorByPlayer(Long playerId) {
+        Player player = playerRepository.findById(playerId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found with id: " + playerId));
+        return player.getTeam() != null ? player.getTeam().getColor() : null;
     }
     public List<Lobby> getAllJoinableLobbies() {
         return lobbyRepository.findOpenLobbiesForLostPlayers();

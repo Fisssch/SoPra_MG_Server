@@ -12,8 +12,11 @@
 | /topic/lobby/{id}/playerStatus | Total and ready players in the lobby are updated | `totalPlayers: number, readyPlayers: number` <- Number of players/ ready players |
 | /topic/lobby/{id}/customWords | Custom word is added to the lobby | `customWords: List<string>` <- list with all the custom words |
 | /topic/lobby/{id}/close | Lobby is closed due to inactivity | `CLOSED` |
-| /topic/lobby/{id}/theme | new theme is set | `theme` <- string with current theme |
-| /topic/game/{id}/hint | Hint is given | `hint: string, wordsCount: int, teamId: long` |
+| /topic/lobby/{id}/theme | New theme is set | `theme` <- string with current theme |
+| /topic/lobby/{id}/language | New language is set | `language` <- string with current language |
+| /topic/lobby/{id}/chat/global | A message is sent in the global chat | `sender: string, message: string` |
+| /topic/lobby/{id}/chat/team/{color} | A message is sent in the team chat | `sender: string, message: string` |
+| /topic/game/{id}/hint | Hint is given | `hint: string, wordsCount: int, teamId: long, guessesLeft: int` |
 | /topic/game/{id}/guess | Guess is made | `teamColor: string, wordStr: string` <- Team Color isch color vo team wo als nöchsts dra isch mit guesse |
 | /topic/game/{id}/gameCompleted | Game finished. | `Color of winning team` |
-| /topic/game/{id}/updatedBoard | Sends the updated gameboard after a guess. | updatedboard: List <Card> <- list of all cards on the board, each containing a word, color and guessed status. |
+| /topic/game/{id}/board | Sends the updated gameboard after a guess. | `updatedboard: List <Card>, guessesLeft: number` <- list of all cards on the board, each containing a word, color and guessed status. |

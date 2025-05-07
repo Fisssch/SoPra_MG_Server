@@ -17,9 +17,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import ch.uzh.ifi.hase.soprafs24.constant.*;
-import ch.uzh.ifi.hase.soprafs24.entity.*;
-import ch.uzh.ifi.hase.soprafs24.repository.*;
+import ch.uzh.ifi.hase.soprafs24.constant.CardColor;
+import ch.uzh.ifi.hase.soprafs24.constant.GameLanguage;
+import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
+import ch.uzh.ifi.hase.soprafs24.constant.PlayerRole;
+import ch.uzh.ifi.hase.soprafs24.constant.TeamColor;
+import ch.uzh.ifi.hase.soprafs24.entity.Card;
+import ch.uzh.ifi.hase.soprafs24.entity.Game;
+import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
+import ch.uzh.ifi.hase.soprafs24.entity.Player;
+import ch.uzh.ifi.hase.soprafs24.entity.User;
+import ch.uzh.ifi.hase.soprafs24.repository.GameRepository;
+import ch.uzh.ifi.hase.soprafs24.repository.LobbyRepository;
+import ch.uzh.ifi.hase.soprafs24.repository.PlayerRepository;
+import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 
 @Service
 @Transactional
@@ -67,6 +78,7 @@ public class GameService {
         }
         Game game = gameRepository.findById(gameId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
         game.setCurrentHint(hint, wordCount);
+        game.setGuessedInHint(0); //reset guessed words for the new hint
         gameRepository.save(game);        
     }
 
@@ -88,6 +100,7 @@ public class GameService {
                 }
                 Lobby lobby = lobbyRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
                 String theme = lobby.getTheme(); 
+                GameLanguage language = lobby.getLanguage();
                 
                 GameMode actualMode = lobby.getGameMode();
 
@@ -104,7 +117,7 @@ public class GameService {
                 game.setGameMode(gameMode);
 
                 try {
-                    List <String> words = generateWords(game, theme); 
+                    List <String> words = generateWords(game, theme, language); 
                     game.setWords(words);
         
                     List <Card> board = assignColorsToWords(words, startingTeam);
@@ -268,7 +281,7 @@ public class GameService {
         return board;
         }
 
-    public List<String> generateWords(Game game, String theme){
+    public List<String> generateWords(Game game, String theme, GameLanguage language){
         if (game.getWords() != null && !game.getWords().isEmpty()){
             return game.getWords(); 
         }
@@ -287,7 +300,7 @@ public class GameService {
         int needed = 25 - finalWords.size(); 
         if(needed > 0) {
             List<String> additional = theme == null || theme.equalsIgnoreCase("default") ?
-            wordGenerationService.getWordsFromApi() : wordGenerationService.getWordsFromApi(theme); //if theme is missing or default call getWordsFromApi() else getWordsFromApi(theme)
+            wordGenerationService.getWordsFromApi(language) : wordGenerationService.getWordsFromApi(theme, language); //if theme is missing or default call getWordsFromApi() else getWordsFromApi(theme)
 
             for (String w : additional){
               String upper = w.toUpperCase();
@@ -333,5 +346,40 @@ public class GameService {
             player.setReady(false);
             playerRepository.save(player);
         }
+    }
+    public int getRemainingGuesses(Long gameId) {
+        Game game = gameRepository.findById(gameId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+
+        if (game.getCurrentHint() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No hint has been given yet");
+        }
+
+        return game.getCurrentHint().getValue() - game.getGuessedInHint();
+    }
+    public void endTurn(Long gameId, User user) {
+        Game game = gameRepository.findById(gameId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+    
+        // Ensure the user is part of the game
+        Player player = playerRepository.findById(user.getId())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found"));
+        
+    
+        // Switch the turn to the opposing team
+        TeamColor currentTeam = game.getTeamTurn();
+        TeamColor nextTeam = (currentTeam == TeamColor.RED) ? TeamColor.BLUE : TeamColor.RED;
+        game.setTeamTurn(nextTeam);
+    
+        // Reset guesses left to the number of words in the current hint
+        if (game.getCurrentHint() != null) {
+            game.setGuessedInHint(0); // Reset guessed words
+        }
+    
+        gameRepository.save(game);
+    }
+    public Game getGameById(Long gameId) {
+        return gameRepository.findById(gameId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
     }
     }
