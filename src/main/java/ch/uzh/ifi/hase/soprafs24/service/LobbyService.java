@@ -15,6 +15,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 
+import ch.uzh.ifi.hase.soprafs24.constant.GameLanguage;
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
 import ch.uzh.ifi.hase.soprafs24.constant.PlayerRole;
 import ch.uzh.ifi.hase.soprafs24.constant.TeamColor;
@@ -113,6 +114,12 @@ public class LobbyService {
     public Lobby setTheme(Long id, String theme){
         Lobby lobby = getLobbyById(id);
         lobby.setTheme(theme.trim());
+        return lobbyRepository.save(lobby);
+    }
+
+    public Lobby setLanguage(Long id, GameLanguage language) {
+        Lobby lobby = getLobbyById(id);
+        lobby.setLanguage(language);
         return lobbyRepository.save(lobby);
     }
 

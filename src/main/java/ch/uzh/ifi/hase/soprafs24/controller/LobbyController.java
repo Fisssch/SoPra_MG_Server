@@ -1,6 +1,7 @@
 package ch.uzh.ifi.hase.soprafs24.controller;
 
 import ch.uzh.ifi.hase.soprafs24.annotation.AuthorizationRequired;
+import ch.uzh.ifi.hase.soprafs24.constant.GameLanguage;
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
 import ch.uzh.ifi.hase.soprafs24.constant.TeamColor;
 import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
@@ -46,7 +47,8 @@ public class LobbyController {
                 lobby.getLobbyName(),
                 lobby.getGameMode().name(),
                 lobby.getLobbyCode(),
-                lobby.getCreatedAt()
+                lobby.getCreatedAt(),
+                lobby.getLanguage().name()
         );
     }
 
@@ -68,7 +70,8 @@ public class LobbyController {
                 lobby.getLobbyName(),
                 lobby.getGameMode().name(),
                 lobby.getLobbyCode(),
-                lobby.getCreatedAt()
+                lobby.getCreatedAt(),
+                lobby.getLanguage().name()
         );
     }
 
@@ -88,7 +91,8 @@ public class LobbyController {
                 lobby.getLobbyName(),
                 lobby.getGameMode().name(),
                 lobby.getLobbyCode(),
-                lobby.getCreatedAt()
+                lobby.getCreatedAt(),
+                lobby.getLanguage().name()
         );
     }
 
@@ -117,6 +121,14 @@ public class LobbyController {
         ThemeDTO themeDTO = new ThemeDTO();
         themeDTO.setTheme(lobby.getTheme() != null ? lobby.getTheme() : "default");
         return themeDTO;
+    }
+
+    @PutMapping("/{id}/language")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @AuthorizationRequired
+    public void setLobbyLanguage(@PathVariable Long id, @RequestBody GameLanguage language) {
+        lobbyService.setLanguage(id, language);
+        webSocketService.sendMessage("/topic/lobby/" + id + "/language", language);
     }
 
     @PutMapping("/{id}/{playerId}")

@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.google.gson.*;
 
 import ch.uzh.ifi.hase.soprafs24.api.apiToken;
+import ch.uzh.ifi.hase.soprafs24.constant.GameLanguage;
 
 
 @Service
@@ -28,11 +29,11 @@ public class WordGenerationService {
   private static String ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + API_KEY;
   
   //fallback method to version without theme 
-  public List<String> getWordsFromApi(){
-    return getWordsFromApi(null); 
+  public List<String> getWordsFromApi(GameLanguage language){
+    return getWordsFromApi(null, language); 
   }
 
-  public List<String> getWordsFromApi(String theme) {
+  public List<String> getWordsFromApi(String theme, GameLanguage language) {
     int maxRetries = 5;
     for (int attempt = 0; attempt < maxRetries; attempt++){
       try {
@@ -40,10 +41,10 @@ public class WordGenerationService {
         String prompt;
 
         if (theme != null && !theme.isBlank()) {
-          prompt = "Give me a list of 25 random, common German nouns suitable for the board game Codenames. " +
+          prompt = "Give me a list of 25 random, common " + language + " nouns suitable for the board game Codenames. " +
                    "The words should all clearly relate to the theme: '" + theme + "'. Output them in a JSON array.";
-      } else {
-          prompt = "Give me a list of 25 random, common German nouns suitable for the board game Codenames. " +
+        } else {
+          prompt = "Give me a list of 25 random, common " + language + " nouns suitable for the board game Codenames. " +
                    "Output them in a JSON array.";
       }
 

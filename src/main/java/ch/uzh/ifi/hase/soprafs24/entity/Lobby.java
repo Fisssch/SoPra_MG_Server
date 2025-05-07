@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs24.entity;
 
+import ch.uzh.ifi.hase.soprafs24.constant.GameLanguage;
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
 
 import java.time.Instant;
@@ -39,6 +40,8 @@ public class Lobby extends DatabaseEntity {
     private Instant createdAt;
   
     private String theme; 
+
+    private GameLanguage language = GameLanguage.GERMAN; // Default language
     
     // --- Getter & Setter ---
 
@@ -158,6 +161,19 @@ public class Lobby extends DatabaseEntity {
 
     public void setTheme(String theme) {
         this.theme = theme;
+    }
+
+    public void setLanguage(GameLanguage language) {
+        if (language != null) {
+            this.language = language;
+        }
+        else {
+            this.language = GameLanguage.GERMAN; // Default language
+        }
+    }
+
+    public GameLanguage getLanguage() {
+        return language;
     }
     
     /**

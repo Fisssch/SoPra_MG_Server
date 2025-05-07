@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import ch.uzh.ifi.hase.soprafs24.constant.CardColor;
+import ch.uzh.ifi.hase.soprafs24.constant.GameLanguage;
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
 import ch.uzh.ifi.hase.soprafs24.constant.PlayerRole;
 import ch.uzh.ifi.hase.soprafs24.constant.TeamColor;
@@ -99,6 +100,7 @@ public class GameService {
                 }
                 Lobby lobby = lobbyRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
                 String theme = lobby.getTheme(); 
+                GameLanguage language = lobby.getLanguage();
                 
                 GameMode actualMode = lobby.getGameMode();
 
@@ -115,7 +117,7 @@ public class GameService {
                 game.setGameMode(gameMode);
 
                 try {
-                    List <String> words = generateWords(game, theme); 
+                    List <String> words = generateWords(game, theme, language); 
                     game.setWords(words);
         
                     List <Card> board = assignColorsToWords(words, startingTeam);
@@ -279,7 +281,7 @@ public class GameService {
         return board;
         }
 
-    public List<String> generateWords(Game game, String theme){
+    public List<String> generateWords(Game game, String theme, GameLanguage language){
         if (game.getWords() != null && !game.getWords().isEmpty()){
             return game.getWords(); 
         }
@@ -298,7 +300,7 @@ public class GameService {
         int needed = 25 - finalWords.size(); 
         if(needed > 0) {
             List<String> additional = theme == null || theme.equalsIgnoreCase("default") ?
-            wordGenerationService.getWordsFromApi() : wordGenerationService.getWordsFromApi(theme); //if theme is missing or default call getWordsFromApi() else getWordsFromApi(theme)
+            wordGenerationService.getWordsFromApi(language) : wordGenerationService.getWordsFromApi(theme, language); //if theme is missing or default call getWordsFromApi() else getWordsFromApi(theme)
 
             for (String w : additional){
               String upper = w.toUpperCase();
