@@ -14,6 +14,6 @@ public interface LobbyRepository extends CustomMongoRepository<Lobby> {
     @Query("{'lobbyCode': ?0}")
     Optional<Lobby> findByLobbyCode(Integer lobbyCode);
 
-    @Query("{'openForLostPlayers': true, '_id': { '$gte': 20 }}")
+    @Query("{'openForLostPlayers': true}")
     List<Lobby> findOpenLobbiesForLostPlayers();
 }
