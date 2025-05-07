@@ -13,8 +13,7 @@ public class LobbyResponseDTO {
     private String language;
 
     private boolean openForLostPlayers;
-    public LobbyResponseDTO(Long id, String lobbyName, String gameMode, Integer lobbyCode, Instant createdAt, boolean openForLostPlayers) {
-    public LobbyResponseDTO(Long id, String lobbyName, String gameMode, Integer lobbyCode, Instant createdAt, String language) {
+    public LobbyResponseDTO(Long id, String lobbyName, String gameMode, Integer lobbyCode, Instant createdAt, String name, boolean openForLostPlayers) {
         this.id = id;
         this.lobbyName = lobbyName;
         this.gameMode = gameMode;

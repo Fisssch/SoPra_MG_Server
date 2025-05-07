@@ -50,7 +50,6 @@ public class LobbyController {
                 lobby.getLobbyCode(),
                 lobby.getCreatedAt(),
                 lobby.getLanguage().name(),
-                lobby.getCreatedAt(),
                 lobby.isOpenForLostPlayers()
         );
     }
@@ -96,8 +95,7 @@ public class LobbyController {
                 lobby.getGameMode().name(),
                 lobby.getLobbyCode(),
                 lobby.getCreatedAt(),
-                lobby.getLanguage().name()
-                lobby.getCreatedAt(),
+                lobby.getLanguage().name(),
                 lobby.isOpenForLostPlayers()
         );
     }
@@ -334,7 +332,7 @@ public class LobbyController {
                 chosen.getGameMode().name(),
                 chosen.getLobbyCode(),
                 chosen.getCreatedAt(),
-                chosen.isOpenForLostPlayers()
+                chosen.getLanguage().name(), chosen.isOpenForLostPlayers()
         );
     }
 

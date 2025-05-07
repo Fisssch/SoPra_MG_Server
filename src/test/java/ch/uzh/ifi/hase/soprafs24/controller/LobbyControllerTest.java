@@ -299,7 +299,7 @@ public class LobbyControllerTest {
             mockLobby.setLobbyName("TestLobby");
             mockLobby.setLobbyCode(1234);
 
-            when(lobbyService.createLobby("TestLobby", GameMode.CLASSIC)).thenReturn(mockLobby);
+            when(lobbyService.createLobby("TestLobby", GameMode.CLASSIC,false)).thenReturn(mockLobby);
 
             String json = "{ \"lobbyName\": \"TestLobby\", \"gameMode\": \"classic\" }";
 
@@ -342,7 +342,7 @@ public class LobbyControllerTest {
 
         @Test
         public void getLobbyByCode_notFound_returns404() throws Exception {
-            when(lobbyService.getOrCreateLobby(1234)).thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
+            when(lobbyService.getOrCreateLobby(1234,false)).thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
 
             mockMvc.perform(get("/lobby?code=1234"))
                     .andExpect(status().isNotFound());
