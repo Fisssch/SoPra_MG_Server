@@ -474,4 +474,9 @@ public class LobbyService {
 
         log.info("Lobby " + lobbyId + " has been closed due to inactivity.");
     }
+
+    public TeamColor getTeamColorByPlayer(Long playerId) {
+        Player player = playerRepository.findById(playerId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found with id: " + playerId));
+        return player.getTeam() != null ? player.getTeam().getColor() : null;
+    }
 }

@@ -625,4 +625,18 @@ public class LobbyServiceTest {
             assertThrows(ResponseStatusException.class, () -> lobbyService.addCustomWord(1L, "toomany"));
         }
     }
+
+    @Test
+    public void removeCustomWord_success() {
+        Lobby lobby = new Lobby();
+        lobby.setId(1L);
+        lobby.setGameMode(GameMode.OWN_WORDS);
+        lobby.setCustomWords(new ArrayList<>(List.of("TEST")));
+        when(lobbyRepository.findById(1L)).thenReturn(Optional.of(lobby));
+
+        Lobby result = lobbyService.removeCustomWord(1L, "test");
+
+        assertTrue(result.getCustomWords().isEmpty());
+        verify(lobbyRepository).save(lobby);
+    }
 }
