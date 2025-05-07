@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs24.service;
 
+import ch.uzh.ifi.hase.soprafs24.api.apiToken;
 import ch.uzh.ifi.hase.soprafs24.constant.CardColor;
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
 import ch.uzh.ifi.hase.soprafs24.constant.PlayerRole;
@@ -58,6 +59,7 @@ public class GameServiceTest {
 
     @BeforeEach
     public void setup() {
+        apiToken.isTestEnvironment = true; // Set to true for testing purposes
         MockitoAnnotations.openMocks(this);
 
         doNothing().when(websocketService).sendMessage(anyString(), any());
