@@ -319,4 +319,25 @@ public class GameControllerTest {
                     .andExpect(status().isForbidden());
         }
     }
+
+    @Test
+    public void endTurn_validRequest_sendsTurnUpdate() throws Exception {
+        User mockUser = new User();
+        mockUser.setId(1L);
+
+        Game mockGame = new Game();
+        mockGame.setId(1L);
+        mockGame.setTeamTurn(TeamColor.BLUE);
+
+        when(userService.extractToken("Bearer valid-token")).thenReturn("valid-token");
+        when(userService.validateToken("valid-token")).thenReturn(mockUser);
+        when(gameService.getGameById(1L)).thenReturn(mockGame);
+
+        mockMvc.perform(put("/game/1/endTurn")
+                .header("Authorization", "Bearer valid-token"))
+                .andExpect(status().isNoContent());
+
+        verify(gameService).endTurn(1L, mockUser);
+        verify(webSocketService).sendMessage("/topic/game/1/turn", Map.of("teamTurn", "BLUE"));
+    }
 }

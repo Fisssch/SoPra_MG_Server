@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs24.service;
 
+import ch.uzh.ifi.hase.soprafs24.api.apiToken;
 import ch.uzh.ifi.hase.soprafs24.constant.CardColor;
 import ch.uzh.ifi.hase.soprafs24.constant.GameLanguage;
 import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
@@ -27,6 +28,7 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -58,6 +60,7 @@ public class GameServiceTest {
 
     @BeforeEach
     public void setup() {
+        apiToken.isTestEnvironment = true; // Set to true for testing purposes
         MockitoAnnotations.openMocks(this);
 
         doNothing().when(websocketService).sendMessage(anyString(), any());
@@ -143,6 +146,29 @@ public class GameServiceTest {
         assertEquals(25, result.size());
         assertTrue(result.contains("CUSTOM1"));
         assertTrue(result.contains("CUSTOM2"));
+    }
+
+    @Test
+    public void getGameById_gameExists_returnsGame() {
+        Game game = new Game();
+        game.setId(1L);
+        when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+
+        Game result = gameService.getGameById(1L);
+
+        assertEquals(1L, result.getId());
+    }
+
+    @Test
+    public void getGameById_gameMissing_throwsException() {
+        when(gameRepository.findById(1L)).thenReturn(Optional.empty());
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> {
+            gameService.getGameById(1L);
+        });
+
+        assertEquals(HttpStatus.NOT_FOUND, ex.getStatus());
+        assertEquals("Game not found", ex.getReason());
     }
 
     @Nested
@@ -615,4 +641,59 @@ public class GameServiceTest {
             assertEquals("Lobby not found", exception.getReason());
         }
     }
+
+    @Test
+    public void endTurn_validCall_switchesTurnAndResetsGuesses() {
+        Game game = new Game();
+        game.setId(1L);
+        game.setTeamTurn(TeamColor.RED);
+        game.setGuessedInHint(2);
+        game.setCurrentHint("hint", 3);
+
+        User user = new User();
+        user.setId(1L);
+
+        Player player = new Player();
+        player.setId(1L);
+
+        when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+        when(playerRepository.findById(1L)).thenReturn(Optional.of(player));
+
+        gameService.endTurn(1L, user);
+
+        assertEquals(TeamColor.BLUE, game.getTeamTurn());
+        assertEquals(0, game.getGuessedInHint());
+        verify(gameRepository).save(game);
+    }
+
+    @Test
+    public void getRemainingGuesses_withHint_returnsCorrectValue() {
+        Game game = new Game();
+        game.setId(1L);
+        game.setCurrentHint("hint", 3);
+        game.setGuessedInHint(1);
+
+        when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+
+        int remaining = gameService.getRemainingGuesses(1L);
+
+        assertEquals(2, remaining);
+    }
+
+    @Test
+    public void getRemainingGuesses_withoutHint_throwsException() {
+        Game game = new Game();
+        game.setId(1L);
+        // Do NOT set a current hint at all — leave it null
+
+        when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> {
+            gameService.getRemainingGuesses(1L);
+        });
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
+        assertEquals("No hint has been given yet", ex.getReason());
+    }
+
 }

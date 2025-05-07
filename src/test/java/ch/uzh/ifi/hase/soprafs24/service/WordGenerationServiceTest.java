@@ -6,6 +6,8 @@ import org.mockito.MockitoAnnotations;
 
 import ch.uzh.ifi.hase.soprafs24.constant.GameLanguage;
 
+import ch.uzh.ifi.hase.soprafs24.api.apiToken;
+
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -17,6 +19,7 @@ public class WordGenerationServiceTest {
     @BeforeEach
     public void setup() {
         MockitoAnnotations.openMocks(this);
+        apiToken.isTestEnvironment = true; // Set to true for testing purposes
         wordGenerationService = new WordGenerationService();
         wordGenerationService.setApiKey("testApiKey");
     }

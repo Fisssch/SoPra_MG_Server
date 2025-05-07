@@ -315,4 +315,28 @@ public class UserControllerTest {
                 .content(asJsonString(passwordDTO)))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+public void getAllUsers_withAuthorizationHeader_returnsJsonArray() throws Exception {
+    User user = new User();
+    user.setId(1L);
+    user.setUsername("testUser");
+    user.setPassword("test");
+    user.setToken("token123");
+    user.setOnlineStatus(UserStatus.ONLINE);
+
+    List<User> users = List.of(user);
+
+    when(userService.getUsers()).thenReturn(users);
+
+    mockMvc.perform(get("/users")
+            .header("Authorization", "Bearer token123")  // Add this header
+            .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$", hasSize(1)))
+            .andExpect(jsonPath("$[0].id", is(1)))
+            .andExpect(jsonPath("$[0].username", is("testUser")))
+            .andExpect(jsonPath("$[0].onlineStatus", is("ONLINE")));
+}
+
 }
