@@ -6,6 +6,8 @@ public class LobbyPostDTO {
     private Long hostId;
     private Integer lobbyCode;
 
+    private boolean openForLostPlayers;
+
     public String getLobbyName() {
         return lobbyName;
     }
@@ -36,5 +38,13 @@ public class LobbyPostDTO {
 
     public void setLobbyCode(Integer lobbyCode) {
         this.lobbyCode = lobbyCode;
+    }
+
+    public boolean isOpenForLostPlayers() {
+        return openForLostPlayers;
+    }
+
+    public void setOpenForLostPlayers(boolean openForLostPlayers) {
+        this.openForLostPlayers = openForLostPlayers;
     }
 }

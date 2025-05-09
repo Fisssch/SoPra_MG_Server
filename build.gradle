@@ -79,13 +79,33 @@ test {
     maxParallelForks = 1
 }
 
-File secretPropsFile = file('./local.properties')
-if (secretPropsFile.exists()) {
-    Properties p = new Properties()
-    p.load(new FileInputStream(secretPropsFile))
-    p.each { name, value ->
-        ext[name] = value
+def localPropsFile = rootProject.file("local.properties")
+if (localPropsFile.exists()) {
+    def Properties localProps = new Properties()
+    localProps.load(new FileInputStream(localPropsFile))
+    localProps.each { key, value ->
+        project.ext.set(key.toString(), value.toString())
+        if (System.getProperty(key.toString()) == null) {
+            System.setProperty(key.toString(), value.toString())
+        }
+    }
+}
+
+processResources {
+    filesMatching("**/application.properties") {
+        expand(project.properties)
     }
 }
 
 defaultTasks 'bootJar', 'build'
+
+bootRun {
+    def propsFile = file('./local.properties')
+    if (propsFile.exists()) {
+        def props = new Properties()
+        props.load(propsFile.newDataInputStream())
+        props.each { key, value ->
+            systemProperty key.toString(), value.toString()
+        }
+    }
+}

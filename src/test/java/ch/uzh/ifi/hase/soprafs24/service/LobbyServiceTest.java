@@ -67,7 +67,7 @@ public class LobbyServiceTest {
             int[] playerCounts = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
 
             for (int count : playerCounts) {
-                Lobby lobby = lobbyService.createLobby("Lobby-" + count, GameMode.CLASSIC);
+                Lobby lobby = lobbyService.createLobby("Lobby-" + count, GameMode.CLASSIC, false);
                 when(lobbyRepository.findById(any())).thenReturn(Optional.of(lobby));
 
                 for (long i = 1; i <= count; i++) {
@@ -83,7 +83,7 @@ public class LobbyServiceTest {
 
         @Test
         public void eachTeamHasOnlyOneSpymaster() {
-            Lobby lobby = lobbyService.createLobby("SpymasterTest", GameMode.OWN_WORDS);
+            Lobby lobby = lobbyService.createLobby("SpymasterTest", GameMode.OWN_WORDS, false);
             when(lobbyRepository.findById(any())).thenReturn(Optional.of(lobby));
 
             for (long i = 1; i <= 4; i++) {
@@ -459,7 +459,7 @@ public class LobbyServiceTest {
         @Test
         public void createLobby_success() {
             // Act
-            Lobby result = lobbyService.createLobby("Test Lobby", GameMode.CLASSIC);
+            Lobby result = lobbyService.createLobby("Test Lobby", GameMode.CLASSIC, false);
             
             // Assert
             assertEquals("Test Lobby", result.getLobbyName());
@@ -504,7 +504,7 @@ public class LobbyServiceTest {
             when(lobbyRepository.findByLobbyCode(1234)).thenReturn(Optional.of(lobby));
             
             // Act
-            Lobby result = lobbyService.getOrCreateLobby(1234);
+            Lobby result = lobbyService.getOrCreateLobby(1234, false);
             
             // Assert
             assertEquals(1L, result.getId());
@@ -517,7 +517,7 @@ public class LobbyServiceTest {
             when(lobbyRepository.findByLobbyCode(anyInt())).thenReturn(Optional.empty());
             
             // Act & Assert
-            assertThrows(ResponseStatusException.class, () -> lobbyService.getOrCreateLobby(1234));
+            assertThrows(ResponseStatusException.class, () -> lobbyService.getOrCreateLobby(1234,false));
         }
         
         @Test
