@@ -6,6 +6,7 @@ public class Card {
     private String word;
     private CardColor color;
     private boolean guessed = false; 
+    private boolean selected = false;
 
     public Card() {}
 
@@ -13,6 +14,7 @@ public class Card {
         this.word = word;
         this.color = color;
         this.guessed = false; 
+        this.selected = false;  
     }
 
     public String getWord() {
@@ -37,5 +39,13 @@ public class Card {
 
     public void setGuessed(boolean guessed) {
         this.guessed = guessed;
+    }
+
+    public boolean isSelected() { 
+        return selected; 
+    
+    }
+    public void setSelected(boolean selected) { 
+        this.selected = selected; 
     }
 }

@@ -20,8 +20,10 @@ import ch.uzh.ifi.hase.soprafs24.constant.GameMode;
 import ch.uzh.ifi.hase.soprafs24.constant.TeamColor;
 import ch.uzh.ifi.hase.soprafs24.entity.Card;
 import ch.uzh.ifi.hase.soprafs24.entity.Game;
+import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GameStartDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GiveHintDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.SelectWordDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.makeGuessDTO;
 import ch.uzh.ifi.hase.soprafs24.service.GameService;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
@@ -62,6 +64,7 @@ public class GameController {
     //    List<String> words= gameService.generateWords(id, "default"); //call here with default since we never create new words here, just get current words from game 
     //    return words;
     //} 
+    
     @PutMapping("/game/{id}/endTurn")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void endTurn(@PathVariable Long id, @RequestHeader("Authorization") String authHeader) {
@@ -120,11 +123,36 @@ public class GameController {
         int guessesLeft = gameService.getRemainingGuesses(id);
         
         Map<String, Object> payload = new HashMap<>();
-    payload.put("updatedBoard", updatedBoard);
-    payload.put("guessesLeft", guessesLeft);
+        payload.put("updatedBoard", updatedBoard);
+        payload.put("guessesLeft", guessesLeft);
 
-    webSocketService.sendMessage("/topic/game/" + id + "/board", payload);
+        webSocketService.sendMessage("/topic/game/" + id + "/board", payload);
     } 
+
+    @PutMapping("/game/{id}/selectWord")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void selectWord(@PathVariable Long id, @RequestHeader("Authorization") String authHeader, @RequestBody SelectWordDTO selectWordDTO) {
+        String token = userService.extractToken(authHeader);
+        User user = userService.validateToken(token); 
+        TeamColor teamColor = TeamColor.valueOf(selectWordDTO.getTeamColor().toUpperCase());
+
+        // Validate if the user is a field operative for the selected team
+        gameService.checkIfUserIsFieldOperative(user.getId(), teamColor);
+
+        // Call the service to process the word selection
+        gameService.selectWord(id, selectWordDTO);
+
+        // Send the updated board to all players via WebSocket
+        List<Card> updatedBoard = gameService.getBoard(id);
+        int guessesLeft = gameService.getRemainingGuesses(id);
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("updatedBoard", updatedBoard); // Send the updated board
+        payload.put("guessesLeft", guessesLeft); 
+        
+        // Send the selection to the WebSocket topic
+        webSocketService.sendMessage("/topic/game/" + id + "/board", payload); 
+    }
 
     
 }

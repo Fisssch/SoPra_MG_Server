@@ -2,6 +2,7 @@ package ch.uzh.ifi.hase.soprafs24.service;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -31,6 +32,7 @@ import ch.uzh.ifi.hase.soprafs24.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.LobbyRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.PlayerRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.SelectWordDTO;
 
 @Service
 @Transactional
@@ -188,12 +190,24 @@ public class GameService {
         // Neutral card guess
         else if (word.getColor() == CardColor.NEUTRAL) {
             word.setGuessed(true);
+
+            // Clear temp word selection 
+            for (Card card : game.getBoard()) {
+                card.setSelected(false);
+            }
+
             game.setTeamTurn(opponentTeam);
             result = Map.entry(false, opponentTeam);
         } 
         // Enemy card guess
         else if (word.getColor().name() != teamColor.name()) {
             word.setGuessed(true);
+
+            // Clear temp word selection 
+            for (Card card : game.getBoard()) {
+                card.setSelected(false);
+            }
+
             game.setTeamTurn(opponentTeam);
             Long leftToGuess = game.getBoard().stream()
                 .filter(card -> card.getColor() == word.getColor() && !card.isGuessed())
@@ -222,6 +236,12 @@ public class GameService {
               scheduleGameDeletion(game.getId()); //delete game 
           } else {
               if (game.getGuessedInHint() >= game.getCurrentHint().getValue()) {
+
+                // Clear temp word selection 
+                for (Card card : game.getBoard()) {
+                    card.setSelected(false);
+                }
+
                   game.setTeamTurn(opponentTeam);
                   result = Map.entry(false,  opponentTeam);
               }
@@ -386,11 +406,53 @@ public class GameService {
         if (game.getCurrentHint() != null) {
             game.setGuessedInHint(0); // Reset guessed words
         }
+
+        // Clear temp selection 
+        for (Card card : game.getBoard()) {
+            card.setSelected(false);
+        }
     
         gameRepository.save(game);
     }
+
     public Game getGameById(Long gameId) {
         return gameRepository.findById(gameId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
     }
+
+    public void selectWord(Long gameId, SelectWordDTO selectWordDTO) {
+        // get game
+        Game game = gameRepository.findById(gameId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+    
+        // get card 
+        Card selectedCard = findWord(game.getBoard(), selectWordDTO.getWordStr());
+        
+        // update selection state of card 
+        selectedCard.setSelected(selectWordDTO.isSelected()); 
+    
+        // save updated game 
+        gameRepository.save(game);
     }
+
+    //private Card findCardByWord(List<Card> board, String word) {
+    //    return board.stream()
+    //        .filter(card -> card.getWord().equalsIgnoreCase(word))
+    //        .findFirst()
+    //        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Word not found on the board"));
+    //}
+
+    public void checkIfUserIsFieldOperative(Long userId, TeamColor teamColor) {
+        Player player = playerRepository.findById(userId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found"));
+    
+        if (player.getRole() != PlayerRole.FIELD_OPERATIVE) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only field operatives can select words temporarily");
+        }
+    
+        if (player.getTeam().getColor() != teamColor) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only select words for your own team");
+        }
+    }
+
+}

@@ -652,14 +652,29 @@ public class GameServiceTest {
         game.setGuessedInHint(2);
         game.setCurrentHint("hint", 3);
 
+        List<Card> board = new ArrayList<>();
+        board.add(new Card("APPLE", CardColor.RED)); 
+        game.setBoard(board);
+
         User user = new User();
         user.setId(1L);
 
         Player player = new Player();
-        player.setId(1L);
+        player.setId(1L); 
+
+        Lobby lobby = new Lobby();
+        lobby.setId(1L);
+        Team redTeam = new Team();
+        redTeam.setId(10L);
+        Team blueTeam = new Team();
+        blueTeam.setId(20L);
+        lobby.setRedTeam(redTeam);
+        lobby.setBlueTeam(blueTeam);
 
         when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
         when(playerRepository.findById(1L)).thenReturn(Optional.of(player));
+        when(playerRepository.findByTeamId(anyLong())).thenReturn(List.of());
+        when(lobbyRepository.findById(1L)).thenReturn(Optional.of(lobby));
 
         gameService.endTurn(1L, user);
 
