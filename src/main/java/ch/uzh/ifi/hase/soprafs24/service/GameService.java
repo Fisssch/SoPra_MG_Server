@@ -413,7 +413,7 @@ public class GameService {
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
     
         // get card 
-        Card selectedCard = findCardByWord(game.getBoard(), selectWordDTO.getWordStr());
+        Card selectedCard = findWord(game.getBoard(), selectWordDTO.getWordStr());
         
         // update selection state of card 
         selectedCard.setSelected(selectWordDTO.isSelected()); 
@@ -422,12 +422,12 @@ public class GameService {
         gameRepository.save(game);
     }
 
-    private Card findCardByWord(List<Card> board, String word) {
-        return board.stream()
-            .filter(card -> card.getWord().equalsIgnoreCase(word))
-            .findFirst()
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Word not found on the board"));
-    }
+    //private Card findCardByWord(List<Card> board, String word) {
+    //    return board.stream()
+    //        .filter(card -> card.getWord().equalsIgnoreCase(word))
+    //        .findFirst()
+    //        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Word not found on the board"));
+    //}
 
     public void checkIfUserIsFieldOperative(Long userId, TeamColor teamColor) {
         Player player = playerRepository.findById(userId)
