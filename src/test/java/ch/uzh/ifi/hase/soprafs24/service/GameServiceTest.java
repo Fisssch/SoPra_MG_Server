@@ -252,6 +252,8 @@ public class GameServiceTest {
         public void validateHint_validHint_savesHint() {
             Game game = new Game();
             game.setId(1L);
+            game.setBoard(new ArrayList<>());
+            game.setWords(new ArrayList<>());
             
             when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
             
