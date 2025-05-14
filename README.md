@@ -1,30 +1,48 @@
-# SoPra RESTful Service Template FS25
+# Codenames + 
+#### SoPra FS25
 
-## Getting started with Spring Boot
--   Documentation: https://docs.spring.io/spring-boot/docs/current/reference/html/index.html
--   Guides: http://spring.io/guides
-    -   Building a RESTful Web Service: http://spring.io/guides/gs/rest-service/
-    -   Building REST services with Spring: https://spring.io/guides/tutorials/rest/
+## Introduction 
+Codenames + is a fun and easy way to play the classic board game with friends, right in your browser. two teams compete to find their secret words on the board using one-word hints from their Spymaster. It's all about clever thinking, teamwork and avoiding the assasin word that ends the game immediatly. Easy to play and fun every time! 
 
-## Setup this Template with your IDE of choice
-Download your IDE of choice (e.g., [IntelliJ](https://www.jetbrains.com/idea/download/), [Visual Studio Code](https://code.visualstudio.com/), or [Eclipse](http://www.eclipse.org/downloads/)). Make sure Java 17 is installed on your system (for Windows, please make sure your `JAVA_HOME` environment variable is set to the correct version of Java).
+To keep the gameplay exciting, the game offers multiple modes: 
 
-### IntelliJ
-If you consider to use IntelliJ as your IDE of choice, you can make use of your free educational license [here](https://www.jetbrains.com/community/education/#students).
-1. File -> Open... -> SoPra server template
-2. Accept to import the project as a `gradle project`
-3. To build right click the `build.gradle` file and choose `Run Build`
+- Classic Mode: Standard randomized words for a traditional experience.
+- Own Words Mode: Players can contribute their own words to build a fully customized board. 
+- Theme Mode: Players can set a theme and the game auto generates words related to that theme. 
+- Timed Mode: Adds real-time pressure by limiting how long teams have to give hints or make guesses. 
 
-### VS Code
-The following extensions can help you get started more easily:
--   `vmware.vscode-spring-boot`
--   `vscjava.vscode-spring-initializr`
--   `vscjava.vscode-spring-boot-dashboard`
--   `vscjava.vscode-java-pack`
+## Technologies 
+### Development
+- Java
+- Spring Boot
+- Gradle 
+### Persistence 
+- MongoDB 
+### Websockets 
+- Spring WebSocket (STOMP)
+### Testing 
+- JUnit
+- Mockito
+### External APIs
+- Google Gemini 1.5 Flash API 
 
-**Note:** You'll need to build the project first with Gradle, just click on the `build` command in the _Gradle Tasks_ extension. Then check the _Spring Boot Dashboard_ extension if it already shows `soprafs24` and hit the play button to start the server. If it doesn't show up, restart VS Code and check again.
+## High-level components 
+The server-side of our project handles all the core logic and data persistence necessary to run the Codenames + game. 
 
-## Building with Gradle
+Here are the most important components: 
+
+- ### LobbyService ([LobbyService.java](https://github.com/Fisssch/SoPra_MG_Server/blob/main/src/main/java/ch/uzh/ifi/hase/soprafs24/service/LobbyService.java))
+This class manages the lifecycles of lobbies, including their creation, player management and timed automatic deletion. It handles the role assignments and triggers the game start logic once the conditions are met. 
+- ### GameService ([GameService.java](https://github.com/Fisssch/SoPra_MG_Server/blob/main/src/main/java/ch/uzh/ifi/hase/soprafs24/service/GameService.java))
+This class handles the entire gameplay logic which includes, turn management, hint validation, handling guesses, tracking game progress and finally determine the winning team. It interacts with the Game, Card, Team and Player entities. 
+- ### WebsocketService ([Websocketservice.java](https://github.com/Fisssch/SoPra_MG_Server/blob/main/src/main/java/ch/uzh/ifi/hase/soprafs24/service/WebsocketService.java))
+This components is responsible for pushing real-time updates to connected clients over WebSockets. It keeps all the clients in sync regarding lobby changes or game events. 
+- ### WordGenerationService ([WordGenerationService.java](https://github.com/Fisssch/SoPra_MG_Server/blob/main/src/main/java/ch/uzh/ifi/hase/soprafs24/service/WordGenerationService.java))
+Fetches a list of 25 words for the game from the Gemini API based on the selected theme. 
+
+## Launch & Deployment 
+
+### Building with Gradle
 You can use the local Gradle Wrapper to build the application.
 -   macOS: `./gradlew`
 -   Linux: `./gradlew`
@@ -38,13 +56,20 @@ More Information about [Gradle Wrapper](https://docs.gradle.org/current/userguid
 ./gradlew build
 ```
 
-### Run
+### Run 
 
 ```bash
 ./gradlew bootRun
 ```
 
-You can verify that the server is running by visiting `localhost:8080` in your browser.
+You can verify that the server is running by visiting `localhost:8080` in your browser. 
+
+#### API Key
+In order to run this project locally you need your own Gemini API Key. Create a local.properties file in the root directory and then add the following line to it: 
+
+- **API_KEY = YOUR_KEY** (Replace YOUR_KEY with your actual Gemini API Key).
+
+This file is automatically read by the build.gradle file at runtime and injected into the app. Note that **local.properties** is ignored by version control to keep your API Key safe. 
 
 ### Test
 
@@ -68,51 +93,20 @@ If you want to avoid running all tests with every change, use the following comm
 
 `./gradlew build --continuous -xtest`
 
-## API Endpoint Testing with Postman
-We recommend using [Postman](https://www.getpostman.com) to test your API Endpoints.
 
-## Debugging
-If something is not working and/or you don't know what is going on. We recommend using a debugger and step-through the process step-by-step.
 
-To configure a debugger for SpringBoot's Tomcat servlet (i.e. the process you start with `./gradlew bootRun` command), do the following:
+## Roadmap 
+- Game history tracking: store the game history data so players can review their past games, including winners, guesses and used hints. 
+- Admin tools for lobby moderation: allow lobby creators to kick players or assign roles manually. 
 
-1. Open Tab: **Run**/Edit Configurations
-2. Add a new Remote Configuration and name it properly
-3. Start the Server in Debug mode: `./gradlew bootRun --debug-jvm`
-4. Press `Shift + F9` or the use **Run**/Debug "Name of your task"
-5. Set breakpoints in the application where you need it
-6. Step through the process one step at a time
 
-## Testing
-Have a look here: https://www.baeldung.com/spring-boot-testing
+## Authors and acknowledgment 
+- [Silvan Wyss](https://github.com/Fisssch)
+- [Mathis Beeler](https://github.com/beelermathis)
+- [Elia Wyrsch](https://github.com/eliawy)
+- [Luis Schmid](https://github.com/LooPyt)
+- [Helinton Philip Pathmarajah](https://github.com/Helinton-Philip-Pathmarajah)
 
-<br>
-<br>
-<br>
+## License 
 
-## Docker
-
-### Introduction
-This year, for the first time, Docker will be used to ease the process of deployment.\
-Docker is a tool that uses containers as isolated environments, ensuring that the application runs consistently and uniformly across different devices.\
-Everything in this repository is already set up to minimize your effort for deployment.\
-All changes to the main branch will automatically be pushed to dockerhub and optimized for production.
-
-### Setup
-1. **One** member of the team should create an account on [dockerhub](https://hub.docker.com/), _incorporating the group number into the account name_, for example, `SoPra_group_XX`.\
-2. This account then creates a repository on dockerhub with the _same name as the group's Github repository name_.\
-3. Finally, the person's account details need to be added as [secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository) to the group's repository:
-    - dockerhub_username (the username of the dockerhub account from step 1, for example, `SoPra_group_XX`)
-    - dockerhub_password (a generated PAT([personal access token](https://docs.docker.com/docker-hub/access-tokens/)) of the account with read and write access)
-    - dockerhub_repo_name (the name of the dockerhub repository from step 2)
-
-### Pull and run
-Once the image is created and has been successfully pushed to dockerhub, the image can be run on any machine.\
-Ensure that [Docker](https://www.docker.com/) is installed on the machine you wish to run the container.\
-First, pull (download) the image with the following command, replacing your username and repository name accordingly.
-
-```docker pull <dockerhub_username>/<dockerhub_repo_name>```
-
-Then, run the image in a container with the following command, again replacing _<dockerhub_username>_ and _<dockerhub_repo_name>_ accordingly.
-
-```docker run -p 3000:3000 <dockerhub_username>/<dockerhub_repo_name>```
+This project is licensed under the [Apache License 2.0](https://github.com/Fisssch/SoPra_MG_Server/blob/main/LICENSE)
