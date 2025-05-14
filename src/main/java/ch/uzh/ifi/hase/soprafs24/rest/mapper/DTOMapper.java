@@ -36,6 +36,7 @@ public interface DTOMapper {
     @Mapping(source = "lobbyName", target = "lobbyName")
     @Mapping(source = "gameMode", target = "gameMode")
     @Mapping(source = "lobbyCode", target = "lobbyCode")
+    @Mapping(source = "openForLostPlayers", target = "openForLostPlayers")
     GetLobbyDTO convertEntitytoGetLobbyDTO(Lobby lobby);
 
     LobbyDTO convertEntityToLobbyDTO(Lobby lobby);

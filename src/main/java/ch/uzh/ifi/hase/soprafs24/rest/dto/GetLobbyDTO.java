@@ -5,8 +5,9 @@ import java.util.List;
 public class GetLobbyDTO {
     public Long id;
     public String lobbyName;
-    public String gameMode;    
+    public String gameMode;
     public Integer lobbyCode;
     public List<String> customWords; 
     public Integer turnDuration;
+    public Boolean openForLostPlayers;
 }

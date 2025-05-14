@@ -21,3 +21,4 @@
 | /topic/game/{id}/guess | Guess is made | `teamColor: string, wordStr: string` <- Team Color isch color vo team wo als nöchsts dra isch mit guesse |
 | /topic/game/{id}/gameCompleted | Game finished. | `Color of winning team` |
 | /topic/game/{id}/board | Sends the updated gameboard after a guess. | `updatedboard: List <Card>, guessesLeft: number` <- list of all cards on the board, each containing a word, color and guessed status. |
+| /topic/lobby/{id}/lostPlayers | Lobby open-for-lost-players setting changed | `true or false` <- Boolean flag indicating if the lobby is open for lost players |

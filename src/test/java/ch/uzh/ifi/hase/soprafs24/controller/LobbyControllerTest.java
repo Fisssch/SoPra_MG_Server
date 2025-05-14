@@ -21,7 +21,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.web.server.ResponseStatusException;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -48,7 +47,7 @@ public class LobbyControllerTest {
 
     @MockBean
     private WebsocketService websocketService;
-    
+
     private String asJsonString(final Object object) {
         try {
             return new ObjectMapper().writeValueAsString(object);
@@ -73,22 +72,22 @@ public class LobbyControllerTest {
                     .andExpect(jsonPath("$.id").value(1))
                     .andExpect(jsonPath("$.role").value("SPYMASTER"));
         }
-        
+
         @Test
         public void addPlayerToLobby_lobbyNotFound_returns404() throws Exception {
             when(lobbyService.addPlayerToLobby(eq(1L), any(Long.class))).thenReturn(null);
-            
+
             mockMvc.perform(put("/lobby/1/1"))
                     .andExpect(status().isNotFound());
         }
-        
+
         @Test
         public void removePlayerFromLobby_success_returnsNoContent() throws Exception {
             doNothing().when(lobbyService).removePlayerFromLobby(eq(1L), eq(1L));
-            
+
             mockMvc.perform(delete("/lobby/1/1"))
                     .andExpect(status().isNoContent());
-            
+
             verify(lobbyService).removePlayerFromLobby(1L, 1L);
             verify(websocketService).sendMessage(anyString(), any(RemovePlayerDTO.class));
         }
@@ -120,42 +119,42 @@ public class LobbyControllerTest {
             mockMvc.perform(get("/lobby/1/role/1"))
                     .andExpect(status().isNotFound());
         }
-        
+
         @Test
         public void getPlayerRole_playerNotFound_returns404() throws Exception {
             Lobby mockLobby = new Lobby();
             when(lobbyService.getLobbyById(1L)).thenReturn(mockLobby);
-            
+
             mockMvc.perform(get("/lobby/1/role/1"))
                     .andExpect(status().isNotFound());
         }
-        
+
         @Test
         public void changePlayerRole_success_returnsNoContent() throws Exception {
             RoleUpdateDTO roleUpdate = new RoleUpdateDTO();
             roleUpdate.setRole("FIELD_OPERATIVE");
-            
+
             Player player = new Player();
             player.setId(1L);
             player.setRole(PlayerRole.FIELD_OPERATIVE);
-            
+
             when(lobbyService.changePlayerRole(eq(1L), eq(1L), eq("FIELD_OPERATIVE"))).thenReturn(player);
-            
+
             mockMvc.perform(put("/lobby/1/role/1")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(asJsonString(roleUpdate)))
                     .andExpect(status().isNoContent());
-            
+
             verify(lobbyService).changePlayerRole(1L, 1L, "FIELD_OPERATIVE");
         }
-        
+
         @Test
         public void changePlayerRole_invalidRole_returns400() throws Exception {
             RoleUpdateDTO roleUpdate = new RoleUpdateDTO();
             roleUpdate.setRole("INVALID_ROLE");
-            
+
             when(lobbyService.changePlayerRole(eq(1L), eq(1L), eq("INVALID_ROLE"))).thenReturn(null);
-            
+
             mockMvc.perform(put("/lobby/1/role/1")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(asJsonString(roleUpdate)))
@@ -219,14 +218,14 @@ public class LobbyControllerTest {
                             .content(json))
                     .andExpect(status().isNoContent());
         }
-        
+
         @Test
         public void changePlayerTeam_invalidTeam_returns400() throws Exception {
             when(lobbyService.changePlayerTeam(eq(1L), eq(1L), eq("yellow")))
                     .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid team color"));
-            
+
             String json = "{ \"color\": \"yellow\" }";
-            
+
             mockMvc.perform(put("/lobby/1/team/1")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(json))
@@ -253,35 +252,35 @@ public class LobbyControllerTest {
             mockMvc.perform(get("/lobby/1/status/1"))
                     .andExpect(status().isNotFound());
         }
-        
+
         @Test
         public void setPlayerReadyStatus_success_returnsNoContent() throws Exception {
             ReadyStatusDTO statusDTO = new ReadyStatusDTO();
             statusDTO.setReady(true);
-            
+
             Player player = new Player();
             player.setId(1L);
             player.setReady(true);
-            
+
             when(lobbyService.setPlayerReadyStatus(eq(1L), eq(1L), eq(true), any(WebsocketService.class)))
                     .thenReturn(player);
-            
+
             mockMvc.perform(put("/lobby/1/status/1")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(asJsonString(statusDTO)))
                     .andExpect(status().isNoContent());
-            
+
             verify(lobbyService).setPlayerReadyStatus(eq(1L), eq(1L), eq(true), any(WebsocketService.class));
         }
-        
+
         @Test
         public void setPlayerReadyStatus_playerNotFound_returns404() throws Exception {
             ReadyStatusDTO statusDTO = new ReadyStatusDTO();
             statusDTO.setReady(true);
-            
+
             when(lobbyService.setPlayerReadyStatus(eq(1L), eq(1L), eq(true), any(WebsocketService.class)))
                     .thenReturn(null);
-            
+
             mockMvc.perform(put("/lobby/1/status/1")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(asJsonString(statusDTO)))
@@ -300,7 +299,7 @@ public class LobbyControllerTest {
             mockLobby.setLobbyName("TestLobby");
             mockLobby.setLobbyCode(1234);
 
-            when(lobbyService.createLobby("TestLobby", GameMode.CLASSIC)).thenReturn(mockLobby);
+            when(lobbyService.createLobby("TestLobby", GameMode.CLASSIC,false)).thenReturn(mockLobby);
 
             String json = "{ \"lobbyName\": \"TestLobby\", \"gameMode\": \"classic\" }";
 
@@ -331,7 +330,7 @@ public class LobbyControllerTest {
             mockLobby.setGameMode(GameMode.CLASSIC);
             mockLobby.setLobbyCode(1234);
 
-            when(lobbyService.getOrCreateLobby(1234)).thenReturn(mockLobby);
+            when(lobbyService.getOrCreateLobby(1234, false)).thenReturn(mockLobby);
 
             mockMvc.perform(get("/lobby?code=1234"))
                     .andExpect(status().isOk())
@@ -343,12 +342,12 @@ public class LobbyControllerTest {
 
         @Test
         public void getLobbyByCode_notFound_returns404() throws Exception {
-            when(lobbyService.getOrCreateLobby(1234)).thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
+            when(lobbyService.getOrCreateLobby(1234,false)).thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
 
             mockMvc.perform(get("/lobby?code=1234"))
                     .andExpect(status().isNotFound());
         }
-        
+
         @Test
         public void getLobbyById_success() throws Exception {
             Lobby mockLobby = new Lobby();
