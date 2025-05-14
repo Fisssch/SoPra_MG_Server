@@ -486,8 +486,11 @@ public class LobbyService {
         Player player = playerRepository.findById(playerId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found with id: " + playerId));
         return player.getTeam() != null ? player.getTeam().getColor() : null;
     }
+
     public List<Lobby> getAllJoinableLobbies() {
-        return lobbyRepository.findOpenLobbiesForLostPlayers();
+        return lobbyRepository.findOpenLobbiesForLostPlayers().stream()
+        .filter(lobby -> !lobby.isGameStarted())
+        .toList();
     }
 
     public void setOpenForLostPlayers(Long lobbyId, boolean open) {
