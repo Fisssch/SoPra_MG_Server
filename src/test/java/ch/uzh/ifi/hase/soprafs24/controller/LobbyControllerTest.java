@@ -11,6 +11,9 @@ import ch.uzh.ifi.hase.soprafs24.service.LobbyService;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
 import ch.uzh.ifi.hase.soprafs24.service.WebsocketService;
 import ch.uzh.ifi.hase.soprafs24.websocket.dto.RemovePlayerDTO;
+import ch.uzh.ifi.hase.soprafs24.constant.GameLanguage;
+
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -431,6 +434,74 @@ public class LobbyControllerTest {
             
             verify(lobbyService).setGameMode(1L, GameMode.OWN_WORDS);
             verify(websocketService).sendMessage(anyString(), any());
+        }
+    }
+    @Nested
+    class LobbyConfigurationHandling {
+
+        @Test
+        public void setLostPlayerAccess_validRequest_returnsNoContent() throws Exception {
+            String json = "{ \"openForLostPlayers\": true }";
+
+            mockMvc.perform(put("/lobby/1/lost-players")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(json))
+                    .andExpect(status().isNoContent());
+
+            verify(lobbyService).setOpenForLostPlayers(1L, true);
+            verify(websocketService).sendMessage("/topic/lobby/1/lostPlayers", true);
+        }
+
+        @Test
+        public void getJoinableLobby_success() throws Exception {
+            Lobby lobby = new Lobby();
+            lobby.setId(1L);
+            lobby.setLobbyName("Joinable");
+            lobby.setGameMode(GameMode.CLASSIC);
+            lobby.setLobbyCode(1234);
+
+            when(lobbyService.getAllJoinableLobbies()).thenReturn(List.of(lobby));
+
+            mockMvc.perform(get("/lobby/lost"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(1))
+                    .andExpect(jsonPath("$.lobbyName").value("Joinable"))
+                    .andExpect(jsonPath("$.gameMode").value("CLASSIC"));
+        }
+
+        @Test
+        public void getLobbyTheme_returnsDefaultTheme() throws Exception {
+            Lobby lobby = new Lobby();
+            lobby.setTheme(null);
+            when(lobbyService.getLobbyById(1L)).thenReturn(lobby);
+
+            mockMvc.perform(get("/lobby/1/theme"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.theme").value("default"));
+        }
+
+        @Test
+        public void setLobbyTheme_validRequest_returnsNoContent() throws Exception {
+            String json = "{ \"theme\": \"sci-fi\" }";
+
+            mockMvc.perform(put("/lobby/1/theme")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(json))
+                    .andExpect(status().isNoContent());
+
+            verify(lobbyService).setTheme(1L, "sci-fi");
+            verify(websocketService).sendMessage("/topic/lobby/1/theme", "sci-fi");
+        }
+
+        @Test
+        public void setLobbyLanguage_validRequest_returnsNoContent() throws Exception {
+            mockMvc.perform(put("/lobby/1/language")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("\"ENGLISH\""))
+                    .andExpect(status().isNoContent());
+
+            verify(lobbyService).setLanguage(1L, GameLanguage.ENGLISH);
+            verify(websocketService).sendMessage("/topic/lobby/1/language", GameLanguage.ENGLISH);
         }
     }
 }

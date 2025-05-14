@@ -10,6 +10,7 @@ import ch.uzh.ifi.hase.soprafs24.rest.dto.UserUpdateUsernameDTO;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Nested;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -338,5 +339,60 @@ public void getAllUsers_withAuthorizationHeader_returnsJsonArray() throws Except
             .andExpect(jsonPath("$[0].username", is("testUser")))
             .andExpect(jsonPath("$[0].onlineStatus", is("ONLINE")));
 }
+    @Nested
+    class UserErrorCases {
 
+        @Test
+        public void getUser_userNotFound_returns404() throws Exception {
+            Long userId = 999L;
+            String token = "test-token";
+
+            when(userService.extractToken("Bearer " + token)).thenReturn(token);
+            when(userService.validateToken(token)).thenReturn(new User());
+            when(userService.getUserById(userId))
+                    .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+            mockMvc.perform(get("/users/" + userId)
+                            .header("Authorization", "Bearer " + token))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        public void updateUsername_blankUsername_returns400() throws Exception {
+            Long userId = 1L;
+            String token = "test-token";
+
+            UserUpdateUsernameDTO dto = new UserUpdateUsernameDTO();
+            dto.setUsername("");
+
+            when(userService.extractToken("Bearer " + token)).thenReturn(token);
+            doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username cannot be blank"))
+                    .when(userService).updateUsername(eq(userId), eq(""), eq(token));
+
+            mockMvc.perform(put("/users/" + userId + "/username")
+                            .header("Authorization", "Bearer " + token)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(asJsonString(dto)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        public void updatePassword_missingFields_returns400() throws Exception {
+            Long userId = 1L;
+            String token = "test-token";
+
+            UserUpdatePasswordDTO dto = new UserUpdatePasswordDTO();
+            // Felder leer
+
+            when(userService.extractToken("Bearer " + token)).thenReturn(token);
+            doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing password fields"))
+                    .when(userService).updatePassword(eq(userId), eq(null), eq(null), eq(token));
+
+            mockMvc.perform(put("/users/" + userId + "/password")
+                            .header("Authorization", "Bearer " + token)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(asJsonString(dto)))
+                    .andExpect(status().isBadRequest());
+        }
+    }
 }

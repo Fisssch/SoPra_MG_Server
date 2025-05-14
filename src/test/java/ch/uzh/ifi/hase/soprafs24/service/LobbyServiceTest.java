@@ -4,6 +4,7 @@ import ch.uzh.ifi.hase.soprafs24.constant.*;
 import ch.uzh.ifi.hase.soprafs24.entity.*;
 import ch.uzh.ifi.hase.soprafs24.repository.*;
 
+import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyPlayersResponseDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -197,7 +198,64 @@ public class LobbyServiceTest {
             verify(lobbyRepository).save(lobby);
             verify(playerRepository).save(player);
         }
-    }
+
+        @Test
+        public void changePlayerTeam_spymasterChangesRoleIfTargetTeamHasSpymaster() {
+            Lobby lobby = new Lobby();
+            lobby.setId(1L);
+
+            Team redTeam = new Team();
+            redTeam.setColor(TeamColor.RED);
+
+            Team blueTeam = new Team();
+            blueTeam.setColor(TeamColor.BLUE);
+
+            Player existingSpymaster = new Player();
+            existingSpymaster.setId(2L);
+            existingSpymaster.setRole(PlayerRole.SPYMASTER);
+            blueTeam.setSpymaster(existingSpymaster);
+
+            Player player = new Player();
+            player.setId(1L);
+            player.setRole(PlayerRole.SPYMASTER);
+            player.setTeam(redTeam);
+
+            lobby.setRedTeam(redTeam);
+            lobby.setBlueTeam(blueTeam);
+
+            when(lobbyRepository.findById(1L)).thenReturn(Optional.of(lobby));
+            when(playerRepository.findById(1L)).thenReturn(Optional.of(player));
+
+            Player result = lobbyService.changePlayerTeam(1L, 1L, "blue");
+
+            assertEquals(blueTeam, result.getTeam());
+            assertEquals(PlayerRole.FIELD_OPERATIVE, result.getRole());
+            verify(playerRepository).save(player);
+        }
+
+        @Test
+        public void changePlayerRole_fromSpymasterToFieldOperative_updatesTeamSpymaster() {
+            Player player = new Player();
+            player.setId(1L);
+            player.setRole(PlayerRole.SPYMASTER);
+
+            Team team = new Team();
+            team.setColor(TeamColor.RED);
+            team.setSpymaster(player);
+            player.setTeam(team);
+
+            Lobby lobby = new Lobby();
+            lobby.setId(1L);
+
+            when(playerRepository.findById(1L)).thenReturn(Optional.of(player));
+            when(lobbyRepository.findById(1L)).thenReturn(Optional.of(lobby));
+
+            Player result = lobbyService.changePlayerRole(1L, 1L, "field_operative");
+
+            assertEquals(PlayerRole.FIELD_OPERATIVE, result.getRole());
+            assertNull(team.getSpymaster());
+            verify(teamRepository).save(team);
+        }
 
     @Nested
     class GameStartLogic {
@@ -639,4 +697,148 @@ public class LobbyServiceTest {
         assertTrue(result.getCustomWords().isEmpty());
         verify(lobbyRepository).save(lobby);
     }
+    @Nested
+    class MiscellaneousServiceTests {
+
+        @Test
+        public void setOpenForLostPlayers_setsFlagTrue() {
+            Lobby lobby = new Lobby();
+            lobby.setId(1L);
+            lobby.setOpenForLostPlayers(false);
+
+            when(lobbyRepository.findById(1L)).thenReturn(Optional.of(lobby));
+
+            lobbyService.setOpenForLostPlayers(1L, true);
+
+            assertTrue(lobby.isOpenForLostPlayers());
+            verify(lobbyRepository).save(lobby);
+        }
+
+        @Test
+        public void getAllJoinableLobbies_returnsOnlyOpenAndUnstartedLobbies() {
+            Lobby openLobby = new Lobby();
+            openLobby.setId(1L);
+            openLobby.setGameStarted(false);
+
+            Lobby startedLobby = new Lobby();
+            startedLobby.setId(2L);
+            startedLobby.setGameStarted(true);
+
+            when(lobbyRepository.findOpenLobbiesForLostPlayers()).thenReturn(List.of(openLobby, startedLobby));
+
+            List<Lobby> result = lobbyService.getAllJoinableLobbies();
+
+            assertEquals(1, result.size());
+            assertEquals(1L, result.get(0).getId());
+        }
+
+        @Test
+        public void getTeamColorByPlayer_returnsCorrectColor() {
+            Player player = new Player();
+            Team team = new Team();
+            team.setColor(TeamColor.BLUE);
+            player.setTeam(team);
+
+            when(playerRepository.findById(42L)).thenReturn(Optional.of(player));
+
+            TeamColor color = lobbyService.getTeamColorByPlayer(42L);
+
+            assertEquals(TeamColor.BLUE, color);
+        }
+
+        @Test
+        public void setTheme_setsThemeTrimmed() {
+            Lobby lobby = new Lobby();
+            lobby.setId(1L);
+            when(lobbyRepository.findById(1L)).thenReturn(Optional.of(lobby));
+
+            Lobby result = lobbyService.setTheme(1L, " space-theme ");
+            assertEquals("space-theme", result.getTheme());
+            verify(lobbyRepository).save(lobby);
+        }
+
+        @Test
+        public void setLanguage_setsLanguage() {
+            Lobby lobby = new Lobby();
+            lobby.setId(1L);
+            when(lobbyRepository.findById(1L)).thenReturn(Optional.of(lobby));
+
+            Lobby result = lobbyService.setLanguage(1L, GameLanguage.FRENCH);
+            assertEquals(GameLanguage.FRENCH, result.getLanguage());
+            verify(lobbyRepository).save(lobby);
+        }
+
+        @Test
+        public void sendLobbyPlayerStatusUpdate_sendsCorrectDTO() {
+            Lobby lobby = new Lobby();
+            lobby.setId(1L);
+
+            // Spieler 1
+            Player player1 = new Player();
+            player1.setId(1L);
+            player1.setRole(PlayerRole.FIELD_OPERATIVE);
+            Team redTeam = new Team();
+            redTeam.setColor(TeamColor.RED);
+            player1.setTeam(redTeam);
+            player1.setReady(true);
+
+            // Spieler 2
+            Player player2 = new Player();
+            player2.setId(2L);
+            player2.setRole(PlayerRole.SPYMASTER);
+            Team blueTeam = new Team();
+            blueTeam.setColor(TeamColor.BLUE);
+            player2.setTeam(blueTeam);
+            player2.setReady(true);
+
+            lobby.addPlayer(player1);
+            lobby.addPlayer(player2);
+
+            when(lobbyRepository.findById(1L)).thenReturn(Optional.of(lobby));
+
+            User user1 = new User(); user1.setUsername("user1");
+            User user2 = new User(); user2.setUsername("user2");
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user1));
+            when(userRepository.findById(2L)).thenReturn(Optional.of(user2));
+
+            LobbyPlayersResponseDTO dto = lobbyService.sendLobbyPlayerStatusUpdate(1L);
+
+            assertEquals(2, dto.getTotalPlayers());
+            assertEquals(2, dto.getReadyPlayers());
+            assertEquals("user1", dto.getPlayers().get(0).getUsername());
+            assertEquals("user2", dto.getPlayers().get(1).getUsername());
+        }
+
+        @Test
+        public void closeLobby_deletesLobbyPlayersTeamsAndSendsWebsocketMessage() {
+            Lobby lobby = new Lobby();
+            lobby.setId(99L);
+
+            Player p1 = new Player(); p1.setId(1L);
+            Player p2 = new Player(); p2.setId(2L);
+            lobby.setPlayers(new ArrayList<>(List.of(p1, p2)));
+
+            Team redTeam = new Team(); redTeam.setId(10L);
+            Team blueTeam = new Team(); blueTeam.setId(20L);
+            lobby.setRedTeam(redTeam);
+            lobby.setBlueTeam(blueTeam);
+
+            when(lobbyRepository.findById(99L)).thenReturn(Optional.of(lobby));
+            when(playerRepository.existsById(1L)).thenReturn(true);
+            when(playerRepository.existsById(2L)).thenReturn(true);
+            when(teamRepository.existsById(10L)).thenReturn(true);
+            when(teamRepository.existsById(20L)).thenReturn(true);
+            when(lobbyRepository.existsById(99L)).thenReturn(true);
+
+            lobbyService.closeLobby(99L);
+
+            verify(playerRepository).deleteById(1L);
+            verify(playerRepository).deleteById(2L);
+            verify(teamRepository).deleteById(10L);
+            verify(teamRepository).deleteById(20L);
+            verify(lobbyRepository).deleteById(99L);
+            verify(websocketService).sendMessage("/topic/lobby/99/close", "CLOSED");
+        }
+    }
+}
 }
