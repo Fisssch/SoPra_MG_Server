@@ -8,4 +8,5 @@ public class GetLobbyDTO {
     public String gameMode;    
     public Integer lobbyCode;
     public List<String> customWords; 
+    public Integer turnDuration;
 }

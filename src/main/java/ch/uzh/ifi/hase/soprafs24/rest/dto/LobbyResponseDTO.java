@@ -10,15 +10,17 @@ public class LobbyResponseDTO {
     private Integer lobbyCode;
 
     private Instant createdAt;
-    private String language;
+    private String language; 
+    private Integer turnDuration;
 
-    public LobbyResponseDTO(Long id, String lobbyName, String gameMode, Integer lobbyCode, Instant createdAt, String language) {
+    public LobbyResponseDTO(Long id, String lobbyName, String gameMode, Integer lobbyCode, Instant createdAt, String language, Integer turnDuration) {
         this.id = id;
         this.lobbyName = lobbyName;
         this.gameMode = gameMode;
         this.lobbyCode = lobbyCode;
         this.createdAt = createdAt;
         this.language = language;
+        this.turnDuration = turnDuration;
     }
 
     public Long getId() {
@@ -63,5 +65,12 @@ public class LobbyResponseDTO {
     }
     public void setLanguage(String language) {
         this.language = language;
+    }
+
+    public Integer getTurnDuration() {
+        return turnDuration;
+    }
+    public void setTurnDuration(Integer turnDuration) {
+        this.turnDuration = turnDuration;
     }
 }
