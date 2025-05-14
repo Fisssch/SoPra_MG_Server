@@ -344,5 +344,7 @@ public class LobbyController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing openForLostPlayers field");
         }
         lobbyService.setOpenForLostPlayers(id, accessDTO.getOpenForLostPlayers());
+
+        webSocketService.sendMessage("/topic/lobby/" + id + "/lostPlayers", accessDTO.getOpenForLostPlayers());
     }
 }
