@@ -47,7 +47,7 @@ public class LobbyService {
         this.userRepository = userRepository;
     }
 
-    public Lobby getOrCreateLobby(Integer lobbyCode) {
+    public Lobby getOrCreateLobby(Integer lobbyCode, boolean openForLostPlayers) {
         Lobby lobby = null;
 
         if (lobbyCode != null) {
@@ -62,7 +62,7 @@ public class LobbyService {
 
 
         if (lobby == null) {
-            return createLobby("Lobby " + generateLobbyCode(), GameMode.CLASSIC);
+            return createLobby("Lobby " + generateLobbyCode(), GameMode.CLASSIC, openForLostPlayers);
         }
 
         return lobby;
@@ -73,12 +73,12 @@ public class LobbyService {
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found with id: " + id));
     }
 
-    public Lobby createLobby(String lobbyName, GameMode gameMode) {
+    public Lobby createLobby(String lobbyName, GameMode gameMode, boolean openForLostPlayers) {
         Lobby lobby = new Lobby();
         lobby.setLobbyName(lobbyName);
         lobby.setGameMode(gameMode);
         lobby.setLobbyCode(generateLobbyCode());
-
+        lobby.setOpenForLostPlayers(openForLostPlayers);
         lobby.setCreatedAt(Instant.now());
         lobby = lobbyRepository.save(lobby);
 
@@ -485,5 +485,20 @@ public class LobbyService {
     public TeamColor getTeamColorByPlayer(Long playerId) {
         Player player = playerRepository.findById(playerId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found with id: " + playerId));
         return player.getTeam() != null ? player.getTeam().getColor() : null;
+    }
+
+    public List<Lobby> getAllJoinableLobbies() {
+        return lobbyRepository.findOpenLobbiesForLostPlayers().stream()
+        .filter(lobby -> !lobby.isGameStarted())
+        .toList();
+    }
+
+    public void setOpenForLostPlayers(Long lobbyId, boolean open) {
+        Lobby lobby = getLobbyById(lobbyId);
+        if (lobby == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found");
+        }
+        lobby.setOpenForLostPlayers(open);
+        lobbyRepository.save(lobby);
     }
 }
