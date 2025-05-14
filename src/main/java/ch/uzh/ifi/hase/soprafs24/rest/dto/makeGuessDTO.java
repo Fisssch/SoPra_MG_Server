@@ -1,6 +1,13 @@
 package ch.uzh.ifi.hase.soprafs24.rest.dto;
 
 public class makeGuessDTO {
+    public makeGuessDTO(){}
+    
+    public makeGuessDTO(String teamColor, String wordStr) {
+        this.teamColor = teamColor;
+        this.wordStr = wordStr;
+    }
+
     private String teamColor;
     private String wordStr;
 

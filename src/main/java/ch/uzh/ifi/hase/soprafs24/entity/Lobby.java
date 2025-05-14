@@ -45,6 +45,8 @@ public class Lobby extends DatabaseEntity {
 
     private GameLanguage language = GameLanguage.GERMAN; // Default language
     
+    private Integer turnDuration = 60;
+
     // --- Getter & Setter ---
 
     public Long getLobbyID() {
@@ -236,5 +238,13 @@ public class Lobby extends DatabaseEntity {
 
     public void setOpenForLostPlayers(boolean openForLostPlayers) {
         this.openForLostPlayers = openForLostPlayers;
+    }
+
+    public Integer getTurnDuration() {
+        return turnDuration;
+    }
+
+    public void setTurnDuration(Integer turnDuration) {
+        this.turnDuration = turnDuration;
     }
 }

@@ -111,6 +111,12 @@ public class LobbyService {
         return lobby;
     }
 
+    public Lobby setTurnDuration(Long id, Integer turnDuration){
+        Lobby lobby = getLobbyById(id);
+        lobby.setTurnDuration(turnDuration);
+        return lobbyRepository.save(lobby);
+    }
+
     public Lobby setTheme(Long id, String theme){
         Lobby lobby = getLobbyById(id);
         lobby.setTheme(theme.trim());

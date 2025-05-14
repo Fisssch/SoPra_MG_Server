@@ -50,7 +50,8 @@ public class LobbyController {
                 lobby.getLobbyCode(),
                 lobby.getCreatedAt(),
                 lobby.getLanguage().name(),
-                lobby.isOpenForLostPlayers()
+                lobby.isOpenForLostPlayers(),
+                lobby.getTurnDuration()
         );
     }
 
@@ -74,7 +75,8 @@ public class LobbyController {
                 lobby.getLobbyCode(),
                 lobby.getCreatedAt(),
                 lobby.getLanguage().name(),
-                lobby.isOpenForLostPlayers()
+                lobby.isOpenForLostPlayers(),
+                lobby.getTurnDuration()
         );
     }
 
@@ -96,7 +98,8 @@ public class LobbyController {
                 lobby.getLobbyCode(),
                 lobby.getCreatedAt(),
                 lobby.getLanguage().name(),
-                lobby.isOpenForLostPlayers()
+                lobby.isOpenForLostPlayers(),
+                lobby.getTurnDuration()
         );
     }
 
@@ -106,6 +109,14 @@ public class LobbyController {
     public void updateGameMode(@PathVariable Long id, @RequestBody GameMode gameMode) {
         var lobby = lobbyService.setGameMode(id, gameMode);
         webSocketService.sendMessage("/topic/lobby/" + id + "/gameMode", DTOMapper.INSTANCE.convertEntityToLobbyDTO(lobby));
+    }
+
+    @PutMapping("/{id}/turnDuration")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @AuthorizationRequired
+    public void setLobbyTurnDuration(@PathVariable Long id, @RequestBody Integer turnDuration) {
+        lobbyService.setTurnDuration(id, turnDuration);
+        webSocketService.sendMessage("/topic/lobby/" + id + "/turnDuration", turnDuration);
     }
 
     @PutMapping("/{id}/theme")
@@ -332,7 +343,9 @@ public class LobbyController {
                 chosen.getGameMode().name(),
                 chosen.getLobbyCode(),
                 chosen.getCreatedAt(),
-                chosen.getLanguage().name(), chosen.isOpenForLostPlayers()
+                chosen.getLanguage().name(),
+                chosen.isOpenForLostPlayers(),
+                chosen.getTurnDuration()
         );
     }
 

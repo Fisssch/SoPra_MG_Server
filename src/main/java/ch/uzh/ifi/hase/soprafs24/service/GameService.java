@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -33,6 +35,7 @@ import ch.uzh.ifi.hase.soprafs24.repository.LobbyRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.PlayerRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.SelectWordDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.makeGuessDTO;
 
 @Service
 @Transactional
@@ -45,7 +48,9 @@ public class GameService {
     private final UserRepository userRepository;
     private final LobbyRepository lobbyRepository;
     private final LobbyService lobbyService;
+    private final WebsocketService websocketService;
     private final Map<Long, Object> locks = new ConcurrentHashMap<>();
+    private final Map<Long, Timer> turnTimers = new ConcurrentHashMap<>();
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     public GameService(
@@ -54,7 +59,8 @@ public class GameService {
             PlayerRepository playerRepository,
             UserRepository userRepository,
             LobbyRepository lobbyRepository,
-            LobbyService lobbyService
+            LobbyService lobbyService,
+            WebsocketService websocketService
     ) {
         this.wordGenerationService = wordGenerationService;
         this.gameRepository = gameRepository;
@@ -62,6 +68,7 @@ public class GameService {
         this.userRepository = userRepository;
         this.lobbyRepository = lobbyRepository;
         this.lobbyService = lobbyService;
+        this.websocketService = websocketService;
     }
 
     public void checkIfUserSpymaster(User user) {
@@ -114,7 +121,8 @@ public class GameService {
                 Lobby lobby = lobbyRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
                 String theme = lobby.getTheme(); 
                 GameLanguage language = lobby.getLanguage();
-                
+                Integer turnDuration = lobby.getTurnDuration();
+
                 GameMode actualMode = lobby.getGameMode();
 
                 if (theme != null && !theme.equalsIgnoreCase("default") && actualMode != GameMode.THEME) {
@@ -128,6 +136,7 @@ public class GameService {
                 game.setStatus("playing");
                 game.setWinningTeam(null);
                 game.setGameMode(gameMode);
+                game.setTurnDuration(turnDuration);
 
                 try {
                     List <String> words = generateWords(game, theme, language); 
@@ -137,6 +146,7 @@ public class GameService {
                     game.setBoard(board);
         
                     gameRepository.save(game);
+                    setTurnTimerIfNeeded(game); 
                     return game; 
 
                 } catch (Exception e) {
@@ -175,6 +185,7 @@ public class GameService {
         Map.Entry<Boolean, TeamColor> result;
         Card word = findWord(game.getBoard(), wordStr);
         var opponentTeam = teamColor == TeamColor.RED ? TeamColor.BLUE : TeamColor.RED;
+        boolean scheduleTimer = false;
 
         // Black card guess
         if (word.getColor() == CardColor.BLACK) {
@@ -197,6 +208,7 @@ public class GameService {
             }
 
             game.setTeamTurn(opponentTeam);
+            scheduleTimer = true;
             result = Map.entry(false, opponentTeam);
         } 
         // Enemy card guess
@@ -218,8 +230,10 @@ public class GameService {
                 resetLobbyGameStarted(game.getId()); //reset gameStarted state in loby 
                 result = Map.entry(true, opponentTeam);
                 scheduleGameDeletion(game.getId()); //delete game 
-            } else
+            } else {
+                scheduleTimer = true;
                 result = Map.entry(false, opponentTeam);
+            }
         }
         // Correct card guess
         else {
@@ -243,13 +257,16 @@ public class GameService {
                 }
 
                   game.setTeamTurn(opponentTeam);
-                  result = Map.entry(false,  opponentTeam);
+                  scheduleTimer = true;
+                  result = Map.entry(false, opponentTeam);
               }
               else
                 result = Map.entry(false,  teamColor);
           }
         }
         gameRepository.save(game);
+        if (scheduleTimer)
+            setTurnTimerIfNeeded(game);
         return result;
     }
 
@@ -272,6 +289,7 @@ public class GameService {
     public void scheduleGameDeletion(Long gameId) {
         scheduler.schedule(() -> {
             try {
+                stopTurnTimer(gameId);
                 gameRepository.deleteById(gameId);
                 System.out.println("Game with ID " + gameId + " has been deleted after game end.");
             } catch (Exception e) {
@@ -455,4 +473,43 @@ public class GameService {
         }
     }
 
+    private void setTurnTimerIfNeeded(Game game) {
+        if (game.getGameMode() != GameMode.TIMED)
+           return;
+        
+        // timer already set
+        if (turnTimers.containsKey(game.getId())) 
+            return;
+        
+        Timer timer = new Timer();
+        turnTimers.put(game.getId(), timer);
+        
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                try {
+                    game.setTeamTurn(game.getTeamTurn() == TeamColor.RED ? TeamColor.BLUE : TeamColor.RED);
+                    gameRepository.save(game);
+                    websocketService.sendMessage("/topic/game/" + game.getId() + "/guess", new makeGuessDTO(game.getTeamTurn().name(), ""));
+                    stopTurnTimer(game.getId());
+                    setTurnTimerIfNeeded(game);
+                } catch (Exception e) {
+                    log.warn("Error in scheduled turn change for game {}: {}", game.getId(), e.getMessage());
+                } finally {
+                    try {
+                        stopTurnTimer(game.getId());
+                    } catch (Exception e) {
+                        log.warn("Failed to remove timer for game {}: {}", game.getId(), e.getMessage());
+                    }
+                }
+            }
+        }, game.getTurnDuration() * 1000);
+    }
+
+    private void stopTurnTimer(Long gameId) {
+        Timer timer = turnTimers.remove(gameId);
+        if (timer != null) {
+            timer.cancel();
+        }
+    }
 }
