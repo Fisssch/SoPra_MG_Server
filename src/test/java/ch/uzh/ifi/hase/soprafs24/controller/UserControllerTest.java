@@ -395,4 +395,32 @@ public void getAllUsers_withAuthorizationHeader_returnsJsonArray() throws Except
                     .andExpect(status().isBadRequest());
         }
     }
+    @Test
+    public void createUser_conflictUsername_returns409() throws Exception {
+        UserPostDTO userPostDTO = new UserPostDTO();
+        userPostDTO.setUsername("existingUser");
+        userPostDTO.setPassword("pass");
+
+        when(userService.createUser(any(User.class)))
+                .thenThrow(new ResponseStatusException(HttpStatus.CONFLICT, "Username already exists"));
+
+        mockMvc.perform(post("/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(userPostDTO)))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    public void createUser_missingFields_returns400() throws Exception {
+        UserPostDTO dto = new UserPostDTO();
+        // No username or password
+
+        when(userService.createUser(any(User.class)))
+                .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing fields"));
+
+        mockMvc.perform(post("/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(dto)))
+                .andExpect(status().isBadRequest());
+    }
 }
