@@ -107,6 +107,8 @@ If you want to avoid running all tests with every change, use the following comm
 - [Luis Schmid](https://github.com/LooPyt)
 - [Helinton Philip Pathmarajah](https://github.com/Helinton-Philip-Pathmarajah)
 
+We especially thank Youssef Farag and all teaching assistants of the module Software Engineering Praktikum at UZH for their feedback at support during our project. 
+
 ## License 
 
 This project is licensed under the [Apache License 2.0](https://github.com/Fisssch/SoPra_MG_Server/blob/main/LICENSE)
