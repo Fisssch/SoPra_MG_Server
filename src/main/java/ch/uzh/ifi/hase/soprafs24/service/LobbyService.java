@@ -111,6 +111,12 @@ public class LobbyService {
         return lobby;
     }
 
+    public Lobby setTurnDuration(Long id, Integer turnDuration){
+        Lobby lobby = getLobbyById(id);
+        lobby.setTurnDuration(turnDuration);
+        return lobbyRepository.save(lobby);
+    }
+
     public Lobby setTheme(Long id, String theme){
         Lobby lobby = getLobbyById(id);
         lobby.setTheme(theme.trim());
@@ -199,7 +205,7 @@ public class LobbyService {
                 teamRepository.delete(updatedLobby.getBlueTeam());
             }
             lobbyRepository.delete(updatedLobby);
-            lobbyTimers.remove(lobbyId);
+            stopLobbyTimer(lobbyId); 
         } else {
             sendLobbyPlayerStatusUpdate(lobbyId);
         }
@@ -423,7 +429,7 @@ public class LobbyService {
                     }
                 }
             }
-        }, 10 * 60 * 1000);
+        }, 10 * 60 * 1000); 
     }
 
     public void stopLobbyTimer(Long lobbyId) {

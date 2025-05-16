@@ -13,6 +13,7 @@
 | /topic/lobby/{id}/customWords | Custom word is added to the lobby | `customWords: List<string>` <- list with all the custom words |
 | /topic/lobby/{id}/close | Lobby is closed due to inactivity | `CLOSED` |
 | /topic/lobby/{id}/theme | New theme is set | `theme` <- string with current theme |
+| /topic/lobby/{id}/turnDuration | Turn duration for Timed mode is changed | `turnDuration` <- integer with current turn duration |
 | /topic/lobby/{id}/language | New language is set | `language` <- string with current language |
 | /topic/lobby/{id}/chat/global | A message is sent in the global chat | `sender: string, message: string` |
 | /topic/lobby/{id}/chat/team/{color} | A message is sent in the team chat | `sender: string, message: string` |
