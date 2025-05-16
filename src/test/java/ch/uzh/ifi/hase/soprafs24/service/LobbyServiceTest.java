@@ -840,5 +840,5 @@ public class LobbyServiceTest {
             verify(websocketService).sendMessage("/topic/lobby/99/close", "CLOSED");
         }
     }
-}#
+}
 }

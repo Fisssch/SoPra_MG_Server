@@ -9,6 +9,8 @@ import org.springframework.test.context.ActiveProfiles;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import org.junit.jupiter.api.AfterEach;
+
 @SpringBootTest
 @ActiveProfiles("test")
 public class UserServiceIntegrationTest {
@@ -18,6 +20,14 @@ public class UserServiceIntegrationTest {
 
     @Autowired
     private UserRepository userRepository;
+
+    @AfterEach
+    public void cleanUp() {
+        User existing = userRepository.findByUsername("integrationUser");
+        if (existing != null) {
+            userRepository.delete(existing);
+        }
+    }
 
     @Test
     public void createUser_userIsPersistedInDatabase() {

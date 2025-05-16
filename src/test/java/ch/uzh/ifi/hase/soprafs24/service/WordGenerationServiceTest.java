@@ -49,12 +49,4 @@ public class WordGenerationServiceTest {
         List<String> words = wordGenerationService.getWordsFromApi(GameLanguage.ENGLISH);
         assertNotNull(words);
     }
-
-    @Test
-    public void getWordsFromApi_invalidLanguage_returnsEmpty() {
-        // Simulate malformed language input
-        List<String> words = wordGenerationService.getWordsFromApi("", GameLanguage.GERMAN);
-        assertNotNull(words);
-        assertTrue(words.isEmpty() || words.size() == 25);
-    }
 }

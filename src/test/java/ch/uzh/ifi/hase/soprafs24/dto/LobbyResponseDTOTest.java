@@ -18,8 +18,9 @@ public class LobbyResponseDTOTest {
         Instant createdAt = Instant.now();
         String language = "GERMAN";
         boolean open = true;
+        Integer turnDuration = 60; 
 
-        LobbyResponseDTO dto = new LobbyResponseDTO(id, lobbyName, gameMode, lobbyCode, createdAt, language, open);
+        LobbyResponseDTO dto = new LobbyResponseDTO(id, lobbyName, gameMode, lobbyCode, createdAt, language, open, turnDuration);
         dto.setLanguage(language); // since constructor param is not used
 
         assertEquals(id, dto.getId());
@@ -33,7 +34,7 @@ public class LobbyResponseDTOTest {
 
     @Test
     public void testSetters() {
-        LobbyResponseDTO dto = new LobbyResponseDTO(null, null, null, null, null, null, false);
+        LobbyResponseDTO dto = new LobbyResponseDTO(null, null, null, null, null, null, false, null);
 
         Instant time = Instant.now();
         dto.setId(2L);

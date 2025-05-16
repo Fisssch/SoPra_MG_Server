@@ -504,4 +504,30 @@ public class LobbyControllerTest {
             verify(websocketService).sendMessage("/topic/lobby/1/language", GameLanguage.ENGLISH);
         }
     }
+
+    @Nested
+    class TurnDurationHandling {
+
+        @Test
+        public void setTurnDuration_validInput_turnDurationUpdated() throws Exception {
+            Lobby mockLobby = new Lobby();
+            mockLobby.setId(1L);
+            mockLobby.setTurnDuration(45);
+            mockLobby.setGameMode(GameMode.CLASSIC);
+
+            when(lobbyService.setTurnDuration(1L, 45)).thenReturn(mockLobby);
+            when(lobbyService.getLobbyById(1L)).thenReturn(mockLobby);
+
+            // Set the turn duration
+            mockMvc.perform(put("/lobby/1/turnDuration")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("45"))
+                    .andExpect(status().isNoContent());
+
+            // Retrieve the lobby to confirm
+            mockMvc.perform(get("/lobby/1"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.turnDuration").value(45));
+        }
+    }
 }

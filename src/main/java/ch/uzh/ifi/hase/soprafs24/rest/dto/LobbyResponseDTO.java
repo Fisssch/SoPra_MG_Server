@@ -14,6 +14,10 @@ public class LobbyResponseDTO {
     private boolean openForLostPlayers;
     private Integer turnDuration;
 
+    public LobbyResponseDTO() {
+
+    }
+
     public LobbyResponseDTO(Long id, String lobbyName, String gameMode, Integer lobbyCode, Instant createdAt, String language, Boolean openForLostPlayers, Integer turnDuration) {
         this.id = id;
         this.lobbyName = lobbyName;
