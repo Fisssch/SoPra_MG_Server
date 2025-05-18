@@ -21,6 +21,7 @@ public class Game extends DatabaseEntity {
     private String currentHint;
     private Integer wordCount;
     private Integer guessedInHint = 0;
+    private Integer turnDuration = 60;
 
     public GameMode getGameMode(){
         return gameMode;
@@ -104,5 +105,13 @@ public class Game extends DatabaseEntity {
 
     public void setGuessedInHint(Integer guessedInHint) {
         this.guessedInHint = guessedInHint;
+    }
+
+    public Integer getTurnDuration() {
+        return turnDuration;
+    }
+
+    public void setTurnDuration(Integer turnDuration) {
+        this.turnDuration = turnDuration;
     }
 }
