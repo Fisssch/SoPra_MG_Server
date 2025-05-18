@@ -127,14 +127,20 @@ public class GameController {
         payload.put("guessesLeft", guessesLeft);
 
         webSocketService.sendMessage("/topic/game/" + id + "/board", payload);
-    } 
+    }
 
     @PutMapping("/game/{id}/selectWord")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void selectWord(@PathVariable Long id, @RequestHeader("Authorization") String authHeader, @RequestBody SelectWordDTO selectWordDTO) {
         String token = userService.extractToken(authHeader);
-        User user = userService.validateToken(token); 
-        TeamColor teamColor = TeamColor.valueOf(selectWordDTO.getTeamColor().toUpperCase());
+        User user = userService.validateToken(token);
+
+        TeamColor teamColor;
+        try {
+            teamColor = TeamColor.valueOf(selectWordDTO.getTeamColor().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid team color: " + selectWordDTO.getTeamColor());
+        }
 
         // Validate if the user is a field operative for the selected team
         gameService.checkIfUserIsFieldOperative(user.getId(), teamColor);
@@ -148,10 +154,10 @@ public class GameController {
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("updatedBoard", updatedBoard); // Send the updated board
-        payload.put("guessesLeft", guessesLeft); 
-        
+        payload.put("guessesLeft", guessesLeft);
+
         // Send the selection to the WebSocket topic
-        webSocketService.sendMessage("/topic/game/" + id + "/board", payload); 
+        webSocketService.sendMessage("/topic/game/" + id + "/board", payload);
     }
 
     

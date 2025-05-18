@@ -13,6 +13,8 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
+import org.springframework.test.context.ActiveProfiles;
+
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
@@ -23,6 +25,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
+@ActiveProfiles("test")
 public class UserServiceTest {
 
     @Mock
@@ -140,6 +143,19 @@ public class UserServiceTest {
             assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
             assertEquals("Incorrect password", exception.getReason());
         }
+
+        @Test
+        public void loginUser_refreshesToken_eachTime() {
+            when(userRepository.findByUsername("testUsername")).thenReturn(testUser);
+
+            User firstLogin = userService.loginUser("testUsername", "testPassword");
+            String firstToken = firstLogin.getToken();
+
+            User secondLogin = userService.loginUser("testUsername", "testPassword");
+            String secondToken = secondLogin.getToken();
+
+            assertNotEquals(firstToken, secondToken);
+        }
     }
 
     @Test
@@ -187,6 +203,14 @@ public class UserServiceTest {
             // then
             ResponseStatusException exception = assertThrows(ResponseStatusException.class,
                     () -> userService.validateToken(null));
+            assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
+            assertEquals("Missing authentication", exception.getReason());
+        }
+
+        @Test
+        public void validateToken_emptyString_throwsException() {
+            ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                    () -> userService.validateToken(""));
             assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
             assertEquals("Missing authentication", exception.getReason());
         }
@@ -242,6 +266,13 @@ public class UserServiceTest {
 
             // then
             assertEquals(2, users.size());
+        }
+
+        @Test
+        public void getUsers_returnsEmptyList() {
+            when(userRepository.findAll()).thenReturn(List.of());
+            List<User> users = userService.getUsers();
+            assertTrue(users.isEmpty());
         }
 
         @Test
@@ -330,6 +361,18 @@ public class UserServiceTest {
             assertEquals(HttpStatus.CONFLICT, exception.getStatus());
             assertEquals("Username already taken.", exception.getReason());
         }
+
+        @Test
+        public void updateUsername_sameAsOld_doesNotThrow() {
+            User currentUser = new User();
+            currentUser.setId(1L);
+            currentUser.setUsername("sameName");
+
+            when(userRepository.findByToken("token")).thenReturn(currentUser);
+            when(userRepository.findByUsername("sameName")).thenReturn(currentUser);
+
+            assertDoesNotThrow(() -> userService.updateUsername(1L, "sameName", "token"));
+        }
     }
 
     @Nested
@@ -387,6 +430,17 @@ public class UserServiceTest {
             assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
             assertEquals("Old password is incorrect.", exception.getReason());
         }
+
+        @Test
+        public void updatePassword_sameAsOldPassword_updatesAnyway() {
+            User currentUser = new User();
+            currentUser.setId(1L);
+            currentUser.setPassword("pass123");
+
+            when(userRepository.findByToken("token")).thenReturn(currentUser);
+
+            assertDoesNotThrow(() -> userService.updatePassword(1L, "pass123", "pass123", "token"));
+        }
     }
 
     @Test
@@ -404,5 +458,14 @@ public class UserServiceTest {
         public void extractToken_withOnlyBearer_returnsEmptyString() {
         String result = userService.extractToken("Bearer ");
         assertEquals("", result);
+    }
+    @Test
+    public void logoutUser_invalidToken_throwsException() {
+        when(userRepository.findByToken("invalid")).thenReturn(null);
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> userService.logoutUser("invalid"));
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
+        assertEquals("An invalid token was provided", exception.getReason());
     }
 }

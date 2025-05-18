@@ -14,6 +14,7 @@ import ch.uzh.ifi.hase.soprafs24.entity.Team;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.*;
 
+import ch.uzh.ifi.hase.soprafs24.rest.dto.SelectWordDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -711,6 +712,115 @@ public class GameServiceTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
         assertEquals("No hint has been given yet", ex.getReason());
+    }
+
+    @Nested
+    class SelectWordTests {
+
+        @Test
+        public void selectWord_validSelection_updatesCard() {
+            // Setup
+            Card card = new Card("APPLE", CardColor.RED);
+            card.setSelected(false);
+            List<Card> board = new ArrayList<>();
+            board.add(card);
+
+            game.setBoard(board);
+            when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+
+            SelectWordDTO dto = new SelectWordDTO();
+            dto.setWordStr("APPLE");
+            dto.setSelected(true);
+
+            // Act
+            gameService.selectWord(1L, dto);
+
+            // Assert
+            assertTrue(card.isSelected());
+            verify(gameRepository).save(game);
+        }
+
+        @Test
+        public void selectWord_wordNotFound_throwsException() {
+            game.setBoard(new ArrayList<>());
+            when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+
+            SelectWordDTO dto = new SelectWordDTO();
+            dto.setWordStr("NON_EXISTENT");
+            dto.setSelected(true);
+
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                    () -> gameService.selectWord(1L, dto));
+
+            assertEquals(HttpStatus.NOT_FOUND, ex.getStatus());
+            assertEquals("Word not found in the game board", ex.getReason());
+        }
+    }
+
+    @Nested
+    class FieldOperativeChecks {
+
+        @Test
+        public void checkIfUserIsFieldOperative_validUser_doesNotThrow() {
+            Player player = new Player();
+            player.setId(1L);
+            player.setRole(PlayerRole.FIELD_OPERATIVE);
+            Team team = new Team();
+            team.setColor(TeamColor.RED);
+            player.setTeam(team);
+
+            when(playerRepository.findById(1L)).thenReturn(Optional.of(player));
+
+            // Act + Assert
+            assertDoesNotThrow(() -> gameService.checkIfUserIsFieldOperative(1L, TeamColor.RED));
+        }
+
+        @Test
+        public void checkIfUserIsFieldOperative_wrongRole_throwsException() {
+            Player player = new Player();
+            player.setId(1L);
+            player.setRole(PlayerRole.SPYMASTER); // falsche Rolle
+            Team team = new Team();
+            team.setColor(TeamColor.RED);
+            player.setTeam(team);
+
+            when(playerRepository.findById(1L)).thenReturn(Optional.of(player));
+
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                    () -> gameService.checkIfUserIsFieldOperative(1L, TeamColor.RED));
+
+            assertEquals(HttpStatus.FORBIDDEN, ex.getStatus());
+            assertEquals("Only field operatives can select words temporarily", ex.getReason());
+        }
+
+        @Test
+        public void checkIfUserIsFieldOperative_wrongTeam_throwsException() {
+            Player player = new Player();
+            player.setId(1L);
+            player.setRole(PlayerRole.FIELD_OPERATIVE);
+            Team team = new Team();
+            team.setColor(TeamColor.BLUE); // falsches Team
+            player.setTeam(team);
+
+            when(playerRepository.findById(1L)).thenReturn(Optional.of(player));
+
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                    () -> gameService.checkIfUserIsFieldOperative(1L, TeamColor.RED));
+
+            assertEquals(HttpStatus.FORBIDDEN, ex.getStatus());
+            assertEquals("You can only select words for your own team", ex.getReason());
+        }
+
+        @Test
+        public void checkIfUserIsFieldOperative_notFound_throwsException() {
+            when(playerRepository.findById(1L)).thenReturn(Optional.empty());
+
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                    () -> gameService.checkIfUserIsFieldOperative(1L, TeamColor.RED));
+
+            assertEquals(HttpStatus.NOT_FOUND, ex.getStatus());
+            assertEquals("Player not found", ex.getReason());
+        }
     }
 
 }

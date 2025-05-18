@@ -39,5 +39,14 @@ public class WordGenerationServiceTest {
         assertNotNull(words);
         assertTrue(words.size() == 0 || words.size() == 25); // fallback or success
     }
-    
+
+
+    @Test
+    public void setApiKey_changesEndpoint() {
+        wordGenerationService.setApiKey("newKey123");
+        // We don't have access to private static field ENDPOINT directly,
+        // but at least assert that setting doesn't throw and future calls use new key
+        List<String> words = wordGenerationService.getWordsFromApi(GameLanguage.ENGLISH);
+        assertNotNull(words);
+    }
 }

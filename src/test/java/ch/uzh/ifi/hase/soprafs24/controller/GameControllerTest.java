@@ -12,6 +12,7 @@ import ch.uzh.ifi.hase.soprafs24.rest.dto.makeGuessDTO;
 import ch.uzh.ifi.hase.soprafs24.service.GameService;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
 import ch.uzh.ifi.hase.soprafs24.service.WebsocketService;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.SelectWordDTO;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -339,5 +341,61 @@ public class GameControllerTest {
 
         verify(gameService).endTurn(1L, mockUser);
         verify(webSocketService).sendMessage("/topic/game/1/turn", Map.of("teamTurn", "BLUE"));
+    }
+    @Nested
+    class WordSelectionHandling {
+
+        @Test
+        public void selectWord_validRequest_sendsUpdatedBoard() throws Exception {
+            // Prepare DTO
+            SelectWordDTO selectWordDTO = new SelectWordDTO();
+            selectWordDTO.setTeamColor("RED");
+            selectWordDTO.setWordStr("apple");
+
+            User user = new User();
+            user.setId(1L);
+
+            List<Card> mockBoard = new ArrayList<>();
+            Card card = new Card();
+            card.setWord("apple");
+            mockBoard.add(card);
+
+            when(userService.extractToken("Bearer valid-token")).thenReturn("valid-token");
+            when(userService.validateToken("valid-token")).thenReturn(user);
+            doNothing().when(gameService).checkIfUserIsFieldOperative(user.getId(), TeamColor.RED);
+            doNothing().when(gameService).selectWord(1L, selectWordDTO);
+            when(gameService.getBoard(1L)).thenReturn(mockBoard);
+            when(gameService.getRemainingGuesses(1L)).thenReturn(2);
+
+            mockMvc.perform(put("/game/1/selectWord")
+                            .header("Authorization", "Bearer valid-token")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(asJsonString(selectWordDTO)))
+                    .andExpect(status().isNoContent());
+
+            verify(webSocketService).sendMessage(eq("/topic/game/1/board"), any(Map.class));
+        }
+
+        @Test
+        public void selectWord_invalidTeamColor_returns400() throws Exception {
+            // Arrange
+            SelectWordDTO selectWordDTO = new SelectWordDTO();
+            selectWordDTO.setWordStr("apple");
+            selectWordDTO.setTeamColor("INVALID"); // ungültiger Wert
+            selectWordDTO.setSelected(false);
+
+            User mockUser = new User();
+            mockUser.setId(1L);
+
+            when(userService.extractToken("Bearer valid-token")).thenReturn("valid-token");
+            when(userService.validateToken("valid-token")).thenReturn(mockUser);
+
+            // Act & Assert
+            mockMvc.perform(put("/game/1/selectWord")
+                            .header("Authorization", "Bearer valid-token")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(asJsonString(selectWordDTO)))
+                    .andExpect(status().isBadRequest()); // 400 expected
+        }
     }
 }

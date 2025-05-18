@@ -205,7 +205,7 @@ public class LobbyService {
                 teamRepository.delete(updatedLobby.getBlueTeam());
             }
             lobbyRepository.delete(updatedLobby);
-            lobbyTimers.remove(lobbyId);
+            stopLobbyTimer(lobbyId); 
         } else {
             sendLobbyPlayerStatusUpdate(lobbyId);
         }
@@ -429,7 +429,7 @@ public class LobbyService {
                     }
                 }
             }
-        }, 10 * 60 * 1000);
+        }, 10 * 60 * 1000); 
     }
 
     public void stopLobbyTimer(Long lobbyId) {
