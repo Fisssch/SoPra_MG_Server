@@ -431,6 +431,8 @@ public class GameService {
         }
     
         gameRepository.save(game);
+
+        setTurnTimerIfNeeded(game);
     }
 
     public Game getGameById(Long gameId) {
@@ -477,9 +479,7 @@ public class GameService {
         if (game.getGameMode() != GameMode.TIMED)
            return;
         
-        // timer already set
-        if (turnTimers.containsKey(game.getId())) 
-            return;
+        stopTurnTimer(game.getId());
         
         Timer timer = new Timer();
         turnTimers.put(game.getId(), timer);
@@ -489,12 +489,27 @@ public class GameService {
             public void run() {
                 try {
                     stopTurnTimer(game.getId());
-                    game.setTeamTurn(game.getTeamTurn() == TeamColor.RED ? TeamColor.BLUE : TeamColor.RED);
-                    gameRepository.save(game);
-                    websocketService.sendMessage("/topic/game/" + game.getId() + "/guess", new makeGuessDTO(game.getTeamTurn().name(), ""));
+
+                    //get latest game data
+                    Game latestGame = gameRepository.findById(game.getId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+
+                    TeamColor currentTurn = latestGame.getTeamTurn();
+                    TeamColor nextTurn = currentTurn == TeamColor.RED ? TeamColor.BLUE : TeamColor.RED;
+
+                    latestGame.setTeamTurn(nextTurn);
+
+                    for (Card card : latestGame.getBoard()) {
+                        card.setSelected(false);
+                    }
+                    
+                    gameRepository.save(latestGame);
+
+
+                    websocketService.sendMessage("/topic/game/" + game.getId() + "/guess", new makeGuessDTO(latestGame.getTeamTurn().name(), ""));
                     // Set small delay to ensure that the timer is stopped before the next turn starts
                     Thread.sleep(500);
-                    setTurnTimerIfNeeded(game);
+                    setTurnTimerIfNeeded(latestGame);
                 } catch (Exception e) {
                     log.warn("Error in scheduled turn change for game {}: {}", game.getId(), e.getMessage());
                 } 
