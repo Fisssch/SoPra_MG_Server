@@ -492,7 +492,8 @@ public class GameService {
                     game.setTeamTurn(game.getTeamTurn() == TeamColor.RED ? TeamColor.BLUE : TeamColor.RED);
                     gameRepository.save(game);
                     websocketService.sendMessage("/topic/game/" + game.getId() + "/guess", new makeGuessDTO(game.getTeamTurn().name(), ""));
-    
+                    // Set small delay to ensure that the timer is stopped before the next turn starts
+                    Thread.sleep(500);
                     setTurnTimerIfNeeded(game);
                 } catch (Exception e) {
                     log.warn("Error in scheduled turn change for game {}: {}", game.getId(), e.getMessage());
