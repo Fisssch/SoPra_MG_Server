@@ -488,20 +488,15 @@ public class GameService {
             @Override
             public void run() {
                 try {
+                    stopTurnTimer(game.getId());
                     game.setTeamTurn(game.getTeamTurn() == TeamColor.RED ? TeamColor.BLUE : TeamColor.RED);
                     gameRepository.save(game);
                     websocketService.sendMessage("/topic/game/" + game.getId() + "/guess", new makeGuessDTO(game.getTeamTurn().name(), ""));
-                    stopTurnTimer(game.getId());
+    
                     setTurnTimerIfNeeded(game);
                 } catch (Exception e) {
                     log.warn("Error in scheduled turn change for game {}: {}", game.getId(), e.getMessage());
-                } finally {
-                    try {
-                        stopTurnTimer(game.getId());
-                    } catch (Exception e) {
-                        log.warn("Failed to remove timer for game {}: {}", game.getId(), e.getMessage());
-                    }
-                }
+                } 
             }
         }, game.getTurnDuration() * 1000);
     }
