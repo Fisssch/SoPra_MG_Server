@@ -12,7 +12,7 @@ import java.nio.file.Paths;
 public class apiToken {
     public static boolean isTestEnvironment = false; // Set this to true for testing purposes
 
-    public static String getApiToken() {        
+    public static String getApiToken() {
         String apiKey = null;
         try {
             Properties properties = new Properties();
