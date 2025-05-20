@@ -593,6 +593,25 @@ public class LobbyServiceTest {
             assertEquals(GameMode.OWN_WORDS, result.getGameMode());
             verify(lobbyRepository).save(lobby);
         }
+
+        @Test
+        public void setTurnDuration_updatesDurationCorrectly() {
+            // Arrange
+            Lobby lobby = new Lobby();
+            lobby.setId(1L);
+            lobby.setTurnDuration(60);
+
+            when(lobbyRepository.findById(1L)).thenReturn(Optional.of(lobby));
+            when(lobbyRepository.save(any(Lobby.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+            // Act
+            Lobby updatedLobby = lobbyService.setTurnDuration(1L, 90);
+
+            // Assert
+            assertEquals(90, updatedLobby.getTurnDuration());
+            verify(lobbyRepository).save(lobby);
+        }
+
     }
     
     @Nested
@@ -841,4 +860,23 @@ public class LobbyServiceTest {
         }
     }
 }
+    @Test
+    public void removePlayerFromTeam_removesTeamIfMatchById() {
+        Lobby lobby = new Lobby();
+
+        Team team = new Team();
+        team.setId(1L);
+
+        Player player = new Player();
+        player.setId(1L);
+        player.setTeam(team);
+
+        lobby.assignPlayerToTeam(player, team);  // optional, falls du die Lobby-Methode verwenden willst
+
+        // Act
+        lobby.removePlayerFromTeam(player, team);
+
+        // Assert
+        assertNull(player.getTeam(), "Player's team should be null after removal");
+    }
 }

@@ -6,6 +6,7 @@ import ch.uzh.ifi.hase.soprafs24.constant.TeamColor;
 import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs24.entity.Player;
 import ch.uzh.ifi.hase.soprafs24.entity.Team;
+import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.*;
 import ch.uzh.ifi.hase.soprafs24.service.LobbyService;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
@@ -29,6 +30,7 @@ import org.springframework.web.server.ResponseStatusException;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -414,6 +416,26 @@ public class LobbyControllerTest {
                     .content(asJsonString(wordDTO)))
                     .andExpect(status().isBadRequest());
         }
+
+        @Test
+        public void removeCustomWord_success() throws Exception {
+            Lobby mockLobby = new Lobby();
+            mockLobby.setId(1L);
+            mockLobby.addCustomWord("hello");
+
+            when(lobbyService.removeCustomWord(1L, "hello")).thenReturn(mockLobby);
+
+            CustomWordDTO wordDTO = new CustomWordDTO();
+            wordDTO.setWord("hello");
+
+            mockMvc.perform(put("/lobby/1/customWord/remove")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(asJsonString(wordDTO)))
+                    .andExpect(status().isNoContent());
+
+            verify(lobbyService).removeCustomWord(1L, "hello");
+            verify(websocketService).sendMessage(anyString(), anyList());
+        }
     }
     
     @Nested
@@ -530,4 +552,94 @@ public class LobbyControllerTest {
                     .andExpect(jsonPath("$.turnDuration").value(45));
         }
     }
+
+    @Test
+    public void countPlayersLobby_returnsPlayerStatus() throws Exception {
+        LobbyPlayersResponseDTO dto = new LobbyPlayersResponseDTO(4, 2, List.of());
+        dto.setTotalPlayers(4);
+
+        when(lobbyService.sendLobbyPlayerStatusUpdate(1L)).thenReturn(dto);
+
+        mockMvc.perform(get("/lobby/1/players"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalPlayers").value(4));
+
+        verify(lobbyService).sendLobbyPlayerStatusUpdate(1L);
+    }
+
+    @Test
+    public void getCustomWords_success_returnsList() throws Exception {
+        Lobby mockLobby = new Lobby();
+        mockLobby.addCustomWord("alpha");
+        mockLobby.addCustomWord("beta");
+
+        when(lobbyService.getLobbyById(1L)).thenReturn(mockLobby);
+
+        mockMvc.perform(get("/lobby/1/customWords"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0]").value("ALPHA"))
+                .andExpect(jsonPath("$[1]").value("BETA"));
+
+        verify(lobbyService).getLobbyById(1L);
+    }
+
+    @Test
+    public void sendChatMessage_teamChat_success() throws Exception {
+        var user = new User();
+        user.setId(1L);
+        user.setUsername("testUser");
+
+        when(userService.extractToken(any())).thenReturn("token");
+        when(userService.validateToken("token")).thenReturn(user);
+        when(lobbyService.getTeamColorByPlayer(1L)).thenReturn(TeamColor.RED);
+
+        mockMvc.perform(post("/lobby/1/chat")
+                        .header("Authorization", "Bearer token")
+                        .param("chatType", "team")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("\"Hello team!\""))
+                .andExpect(status().isNoContent());
+
+        verify(websocketService).sendMessage(contains("/topic/lobby/1/chat/team/RED"), any());
+    }
+
+    @Test
+    public void sendChatMessage_globalChat_success() throws Exception {
+        var user = new User();
+        user.setId(2L);
+        user.setUsername("globalUser");
+
+        when(userService.extractToken(any())).thenReturn("token2");
+        when(userService.validateToken("token2")).thenReturn(user);
+        when(lobbyService.getTeamColorByPlayer(2L)).thenReturn(TeamColor.BLUE);
+
+        mockMvc.perform(post("/lobby/1/chat")
+                        .header("Authorization", "Bearer token2")
+                        .param("chatType", "global")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("\"Global message!\""))
+                .andExpect(status().isNoContent());
+
+        verify(websocketService).sendMessage(contains("/topic/lobby/1/chat/global"), any());
+    }
+
+    @Test
+    public void sendChatMessage_invalidChatType_returns400() throws Exception {
+        var user = new User();
+        user.setId(3L);
+        user.setUsername("badUser");
+
+        when(userService.extractToken(any())).thenReturn("token3");
+        when(userService.validateToken("token3")).thenReturn(user);
+        when(lobbyService.getTeamColorByPlayer(3L)).thenReturn(TeamColor.BLUE);
+
+        mockMvc.perform(post("/lobby/1/chat")
+                        .header("Authorization", "Bearer token3")
+                        .param("chatType", "invalid")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("\"oops\""))
+                .andExpect(status().isBadRequest());
+    }
+
+    
 }
