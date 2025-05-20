@@ -339,6 +339,52 @@ public class GameServiceTest {
             assertTrue(redCard.isGuessed());
             assertEquals(1, game.getGuessedInHint());
         }
+        @Test
+        public void makeGuess_correctCard_reachesHintLimit_switchesTurn() {
+            // Setup Game
+            Game game = new Game();
+            game.setId(1L);
+            game.setTeamTurn(TeamColor.RED);
+            game.setStatus("playing");
+            game.setCurrentHint("hint", 2); // max 2 guesses
+            game.setGuessedInHint(1); // already guessed once
+
+            // Setup Cards
+            Card redCard = new Card("APPLE", CardColor.RED);
+            redCard.setGuessed(false);
+            redCard.setSelected(true);
+
+            Card redCard2 = new Card("BANANA", CardColor.RED); // Unguessed zweite Karte – verhindert Game Over
+
+            game.setBoard(List.of(redCard, redCard2));
+
+            // Setup Lobby and Teams
+            Lobby dummyLobby = new Lobby();
+            dummyLobby.setId(1L);
+            Team redTeam = new Team();
+            redTeam.setId(10L);
+            redTeam.setColor(TeamColor.RED);
+            Team blueTeam = new Team();
+            blueTeam.setId(20L);
+            blueTeam.setColor(TeamColor.BLUE);
+            dummyLobby.setRedTeam(redTeam);
+            dummyLobby.setBlueTeam(blueTeam);
+
+            when(lobbyRepository.findById(1L)).thenReturn(Optional.of(dummyLobby));
+            when(playerRepository.findByTeamId(anyLong())).thenReturn(List.of());
+            when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+
+            // Act
+            Map.Entry<Boolean, TeamColor> result = gameService.makeGuess(1L, TeamColor.RED, "APPLE", new User());
+
+            // Assert
+            assertFalse(result.getKey()); // Game should not be over
+            assertEquals(TeamColor.BLUE, result.getValue()); // Turn switched
+            assertFalse(redCard.isSelected()); // Selection cleared
+            assertTrue(redCard.isGuessed()); // Card was guessed
+            assertEquals(2, game.getGuessedInHint()); // Hint limit reached
+            assertEquals(TeamColor.BLUE, game.getTeamTurn()); // Team changed
+        }
         
         @Test
         public void makeGuess_enemyCard_switchesTurn() {
@@ -822,5 +868,45 @@ public class GameServiceTest {
             assertEquals("Player not found", ex.getReason());
         }
     }
+    @Nested
+    class TimerTests {
+        @Test
+        void startTimedGame_turnSwitchesAfterTimer() throws InterruptedException {
+            Lobby lobby = new Lobby();
+            lobby.setId(999L);
+            lobby.setTurnDuration(1);
+            lobby.setGameMode(GameMode.TIMED);
+            lobby.setLanguage(GameLanguage.ENGLISH);
+            lobby.setTheme("default");
 
+            when(lobbyRepository.findById(999L)).thenReturn(Optional.of(lobby));
+
+            when(wordGenerationService.getWordsFromApi(GameLanguage.ENGLISH)).thenReturn(List.of(
+                    "apple", "banana", "cherry", "dog", "cat", "tree", "house", "river",
+                    "car", "mountain", "bird", "school", "computer", "book", "phone",
+                    "chair", "sun", "moon", "star", "water", "pen", "desk", "cloud",
+                    "road", "train"
+            ));
+
+            Game[] gameHolder = new Game[1];
+            when(gameRepository.save(any(Game.class))).thenAnswer(invocation -> {
+                Game g = invocation.getArgument(0);
+                gameHolder[0] = g;
+                return g;
+            });
+
+            when(gameRepository.findById(999L)).thenAnswer(invocation -> Optional.ofNullable(gameHolder[0]));
+
+            Game game = gameService.startOrGetGame(999L, TeamColor.RED, GameMode.TIMED);
+
+            assertEquals(TeamColor.RED, game.getTeamTurn());
+
+            Thread.sleep(1500); // warte auf Timer
+
+            Game updatedGame = gameService.getGameById(999L);
+            assertEquals(TeamColor.BLUE, updatedGame.getTeamTurn()); // Turn sollte gewechselt haben
+        }
+
+
+    }
 }

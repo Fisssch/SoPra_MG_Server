@@ -841,4 +841,23 @@ public class LobbyServiceTest {
         }
     }
 }
+    @Test
+    public void removePlayerFromTeam_removesTeamIfMatchById() {
+        Lobby lobby = new Lobby();
+
+        Team team = new Team();
+        team.setId(1L);
+
+        Player player = new Player();
+        player.setId(1L);
+        player.setTeam(team);
+
+        lobby.assignPlayerToTeam(player, team);  // optional, falls du die Lobby-Methode verwenden willst
+
+        // Act
+        lobby.removePlayerFromTeam(player, team);
+
+        // Assert
+        assertNull(player.getTeam(), "Player's team should be null after removal");
+    }
 }
