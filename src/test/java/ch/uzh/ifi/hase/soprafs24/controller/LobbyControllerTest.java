@@ -584,7 +584,7 @@ public class LobbyControllerTest {
     }
 
     @Test
-    public void postMethodName_teamChat_success() throws Exception {
+    public void sendChatMessage_teamChat_success() throws Exception {
         var user = new User();
         user.setId(1L);
         user.setUsername("testUser");
@@ -604,7 +604,7 @@ public class LobbyControllerTest {
     }
 
     @Test
-    public void postMethodName_globalChat_success() throws Exception {
+    public void sendChatMessage_globalChat_success() throws Exception {
         var user = new User();
         user.setId(2L);
         user.setUsername("globalUser");
@@ -624,7 +624,7 @@ public class LobbyControllerTest {
     }
 
     @Test
-    public void postMethodName_invalidChatType_returns400() throws Exception {
+    public void sendChatMessage_invalidChatType_returns400() throws Exception {
         var user = new User();
         user.setId(3L);
         user.setUsername("badUser");

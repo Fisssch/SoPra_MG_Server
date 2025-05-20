@@ -312,7 +312,7 @@ public class LobbyController {
     @PostMapping("/{id}/chat")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @AuthorizationRequired
-    public void postMethodName(@PathVariable Long id, @RequestHeader("Authorization") String authHeader, @RequestParam String chatType, @RequestBody String message) {
+    public void sendChatMessage(@PathVariable Long id, @RequestHeader("Authorization") String authHeader, @RequestParam String chatType, @RequestBody String message) {
         User user = userService.validateToken(userService.extractToken(authHeader));
         TeamColor color = lobbyService.getTeamColorByPlayer(user.getId());
         if (color == null) {
